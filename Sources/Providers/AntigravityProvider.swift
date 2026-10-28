@@ -22,11 +22,6 @@ actor AntigravityProvider: UsageProvider {
     nonisolated let displayName: String
     nonisolated let glyph = ProviderGlyph.antigravity
 
-    /// The production host. Antigravity itself also calls a `daily-` variant,
-    /// which answers 403 to this token — so it is not a fallback, it is a
-    /// different audience.
-    private let endpoint = URL(string: "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist")!
-    /// The real usage figure — served by Cloud Code PA.
     private let quotaEndpoint = URL(string: "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary")!
     private let prodQuotaEndpoint = URL(string: "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary")!
     private let session: URLSession
@@ -594,25 +589,4 @@ actor AntigravityProvider: UsageProvider {
         return windows
     }
 
-    /// Read the plan name from `loadCodeAssist`.
-    static func tier(in data: Data) -> String {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return "Gemini"
-        }
-        if let current = json["currentTier"] as? [String: Any],
-           let name = current["name"] as? String, !name.isEmpty {
-            return name
-        }
-        if let allowed = json["allowedTiers"] as? [[String: Any]] {
-            if let def = allowed.first(where: { ($0["isDefault"] as? Bool) == true }),
-               let name = def["name"] as? String, !name.isEmpty {
-                return name
-            }
-            if let first = allowed.first,
-               let name = first["name"] as? String, !name.isEmpty {
-                return name
-            }
-        }
-        return "Gemini"
-    }
 }

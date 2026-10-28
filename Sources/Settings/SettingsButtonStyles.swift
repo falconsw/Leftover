@@ -32,21 +32,27 @@ private struct SettingsButtonBody: View {
 
     private static let destructiveRed = Color(red: 1, green: 0.42, blue: 0.4)
 
+    /// The button's own ground, in the appearance the page is in.
+    ///
+    /// `Color.primary` is the label colour, which is white in a dark window
+    /// and black in a light one — so a pill drawn out of it reads as a
+    /// highlight in either, and the panel does not have to know which one it
+    /// is looking at.
     private var fill: Color {
         let pressed = configuration.isPressed
         switch kind {
         case .standard:
-            return .white.opacity(pressed ? 0.20 : isHovered ? 0.14 : 0.08)
+            return Color.primary.opacity(pressed ? 0.18 : isHovered ? 0.12 : 0.07)
         case .prominent:
-            return .white.opacity(pressed ? 0.72 : isHovered ? 0.86 : 0.96)
+            return Color.primary.opacity(pressed ? 0.78 : isHovered ? 1 : 0.92)
         }
     }
 
     private var foreground: Color {
         if configuration.role == .destructive { return Self.destructiveRed }
         switch kind {
-        case .standard:  return .white.opacity(isHovered ? 1 : 0.9)
-        case .prominent: return .black
+        case .standard:  return .primary
+        case .prominent: return Color(nsColor: .windowBackgroundColor)
         }
     }
 
@@ -59,7 +65,7 @@ private struct SettingsButtonBody: View {
             .background(Capsule().fill(fill))
             .overlay {
                 if kind == .standard {
-                    Capsule().strokeBorder(.white.opacity(isHovered ? 0.16 : 0.09), lineWidth: 1)
+                    Capsule().strokeBorder(Color.primary.opacity(isHovered ? 0.18 : 0.10), lineWidth: 1)
                 }
             }
             .contentShape(Capsule())
@@ -89,9 +95,9 @@ private struct SettingsIconButtonBody: View {
         configuration.label
             .foregroundStyle(configuration.role == .destructive
                              ? Color(red: 1, green: 0.42, blue: 0.4)
-                             : Color.white.opacity(isHovered ? 0.95 : 0.6))
+                             : Color.primary.opacity(isHovered ? 0.95 : 0.6))
             .frame(width: 24, height: 24)
-            .background(Circle().fill(.white.opacity(configuration.isPressed ? 0.16 : isHovered ? 0.09 : 0)))
+            .background(Circle().fill(Color.primary.opacity(configuration.isPressed ? 0.16 : isHovered ? 0.09 : 0)))
             .contentShape(Circle())
             .scaleEffect(configuration.isPressed ? 0.92 : 1)
             .opacity(isEnabled ? 1 : 0.4)

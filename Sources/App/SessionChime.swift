@@ -29,22 +29,6 @@ enum SessionChime {
 
     private static let extensions = ["aiff", "aif", "m4a", "wav", "caf"]
 
-    /// Every sound the picker can offer, by name, in the order macOS lists them.
-    static var available: [String] {
-        var seen = Set<String>()
-        var names: [String] = []
-        for directory in directories {
-            let files = (try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []
-            for file in files.sorted() {
-                let url = URL(fileURLWithPath: file)
-                guard extensions.contains(url.pathExtension.lowercased()) else { continue }
-                let name = url.deletingPathExtension().lastPathComponent
-                if seen.insert(name).inserted { names.append(name) }
-            }
-        }
-        return names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
-    }
-
     static func url(for name: String) -> URL? {
         for directory in directories {
             for ext in extensions {

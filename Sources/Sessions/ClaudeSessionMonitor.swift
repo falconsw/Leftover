@@ -23,7 +23,7 @@ final class ClaudeSessionMonitor: ObservableObject, AgentActivityMonitor {
     /// the tests that only care about the registry want.
     private let transcripts: ClaudeTranscriptReader?
 
-    /// Sessions to leave out because Codenotch started them, not the user.
+    /// Sessions to leave out because Leftover started them, not the user.
     ///
     /// Renewing the OAuth token runs the Claude CLI, and the CLI registers a
     /// session file for the second or so it is alive, exactly like any other
@@ -32,11 +32,11 @@ final class ClaudeSessionMonitor: ObservableObject, AgentActivityMonitor {
     /// polling usage hard on the strength of it.
     ///
     /// The pid alone is enough: checked on this machine, the file the CLI
-    /// writes carries the pid of the process Codenotch spawned, with no fork in
+    /// writes carries the pid of the process Leftover spawned, with no fork in
     /// between. See `ClaudeTokenRefresher`.
     var ignoredPIDs: () -> Set<Int32> = { [] }
 
-    /// Working directories whose sessions are Codenotch's own, matched as a
+    /// Working directories whose sessions are Leftover's own, matched as a
     /// second net under the pids: the `/usage` probe runs in
     /// `ClaudeUsageCLI.scratchDirectory`, and a session filed from there is
     /// never the user's, whichever process wrote it.
@@ -58,8 +58,6 @@ final class ClaudeSessionMonitor: ObservableObject, AgentActivityMonitor {
     private var descriptor: CInt = -1
     private var livenessTimer: Timer?
     private var debounce: DispatchWorkItem?
-    private var wakeObserver: NSObjectProtocol?
-
     /// `livenessInterval` doubles as how often a running session's transcript
     /// is looked at, so it matches the Codex monitor's two seconds rather than
     /// the five it used when the registry was the only thing being read. The
@@ -192,7 +190,7 @@ final class ClaudeSessionMonitor: ObservableObject, AgentActivityMonitor {
     /// The live records in one profile's `sessions` directory.
     ///
     /// `ignoringDirectories` is the second net under the pids: a session filed
-    /// from Codenotch's own `/usage` scratch directory is never the user's,
+    /// from Leftover's own `/usage` scratch directory is never the user's,
     /// whichever profile's directory it turns up in. `isAttended` is asked only
     /// of the sessions a program started, and leaves out the ones nobody is at.
     ///

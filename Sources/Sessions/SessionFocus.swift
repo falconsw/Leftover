@@ -16,25 +16,6 @@ import Foundation
 /// by tty over AppleScript, Warp and Ghostty publish nothing. `focus` tries
 /// the tab and settles for the app; `activateApp` is the app-only route.
 enum SessionFocus {
-    /// Select the tab this process runs in where the terminal allows it, then
-    /// raise the owning application either way.
-    ///
-    /// The tab selection runs off the calling actor: cmux's CLI and osascript
-    /// are subprocesses that would otherwise stall the notch's tap handling.
-    @discardableResult
-    static func focus(pid: pid_t) async -> Bool {
-        let app = owningApp(of: pid)
-        let tty = tty(of: pid)
-        let cwd = currentDirectory(of: pid)
-        await Task.detached(priority: .userInitiated) {
-            _ = TerminalTabFocus.selectTab(bundleID: app?.bundleIdentifier, pid: pid, tty: tty, cwd: cwd)
-        }.value
-        guard let app else {
-            Log.usage.debug("no owning app for pid \(pid, privacy: .public)")
-            return false
-        }
-        return await MainActor.run { app.activate() }
-    }
 
     /// The process's controlling terminal, named the way ps prints it
     /// (`ttys014`). Nil when it has none — agents with no terminal to go back
@@ -65,23 +46,6 @@ enum SessionFocus {
                 String(cString: $0)
             }
         }
-    }
-
-    /// Raise whichever application owns this process.
-    ///
-    /// Returns false when the chain runs out before an application appears,
-    /// which is the honest answer for an agent started by launchd, over ssh, or
-    /// from a process that has since been reparented to init.
-    @discardableResult
-    static func activateApp(owning pid: pid_t) -> Bool {
-        guard let app = owningApp(of: pid) else {
-            Log.usage.debug("no owning app for pid \(pid, privacy: .public)")
-            return false
-        }
-        // `activate()` rather than the deprecated options form: the notch's own
-        // panel is non-activating, so there is no focus of ours to hand over
-        // and nothing to co-ordinate.
-        return app.activate()
     }
 
     /// The nearest ancestor process that macOS knows as a running application.

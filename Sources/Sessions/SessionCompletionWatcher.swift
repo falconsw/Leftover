@@ -30,10 +30,10 @@ struct SessionCompletionWatcher {
     private var previous: [String: AgentSession.State] = [:]
     /// Nothing is announced from the first reading.
     ///
-    /// Every session already running when Codenotch launches arrives with no
+    /// Every session already running when Leftover launches arrives with no
     /// history, and treating that as a transition would ring once per session
-    /// on every start — including a restart in the middle of the night after a
-    /// Sparkle update. The first pass only records.
+    /// on every start — including a restart in the middle of the night after an
+    /// update. The first pass only records.
     private var hasSeeded = false
 
     /// Feed the monitors' current view; get back what just changed.

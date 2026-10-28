@@ -12,7 +12,7 @@ struct HiggsfieldCredentialSources {
 
 enum HiggsfieldCredentials {
     static let keychainService = "higgsfield-api-key"
-    static let keychainAccount = "codenotch"
+    static let keychainAccount = "leftover"
 
     static var credentialsURL: URL {
         FileManager.default.homeDirectoryForCurrentUser

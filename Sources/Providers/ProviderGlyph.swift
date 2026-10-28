@@ -42,7 +42,6 @@ enum ProviderGlyph: String, Codable, Equatable {
     case ollamaLocal = "ollama-local"
     case lmstudio
     case omlx
-    case llamaCpp = "llamacpp"
     /// The QianwenAI platform's own console mark, which is a different emblem
     /// from the local Qwen model brand in `.qwen` — a ring wearing this one is
     /// the platform account, not a model.
@@ -92,7 +91,6 @@ enum ProviderGlyph: String, Codable, Equatable {
         case .ollamaLocal: return 0.98
         case .lmstudio: return 0.96
         case .omlx: return 1.0
-        case .llamaCpp: return 1.0
         // The one value here measured off a render of the asset file rather
         // than of the app: this mark's ink fills 0.996 of its box, rasterised
         // with `rsvg-convert -w 512`. Claude's outline fills 0.997 at 0.97, so
@@ -140,7 +138,7 @@ enum ProviderGlyph: String, Codable, Equatable {
         // glyph-kimi in the asset catalogue are drawn instead.
         case .glm:    return GlyphOutline.glm
         case .devin, .qwen, .gemma, .meta, .deepseek, .mistral, .lmstudio,
-             .omlx, .qianwenAI, .qoder, .amp, .apify, .llamaCpp, .grokbot, .higgsfield: return []
+             .omlx, .qianwenAI, .qoder, .amp, .apify, .grokbot, .higgsfield: return []
         case .grok:   return GlyphOutline.grok
         case .opencode: return GlyphOutline.opencode
         case .commandcode: return GlyphOutline.commandcode
@@ -178,17 +176,11 @@ struct GlyphShape: Shape {
 
 struct ProviderGlyphView: View {
     let glyph: ProviderGlyph
-    var customIconFilename: String? = nil
     var size: CGFloat = Design.px(46)
 
     var body: some View {
         Group {
-            if let customIconFilename,
-               let image = CustomIconStore.loadIcon(filename: customIconFilename) {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-            } else if let image = NSImage(named: glyph.assetName) {
+            if let image = NSImage(named: glyph.assetName) {
                 Image(nsImage: image)
                     .renderingMode(.template)
                     .resizable()

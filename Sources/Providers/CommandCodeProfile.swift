@@ -54,11 +54,6 @@ struct CommandCodeProfile: Equatable, Hashable {
     // Preserve the default id so existing readings and preferences survive.
     var id: String { slug.map { "\(Self.defaultID)-\($0)" } ?? Self.defaultID }
 
-    /// Whether a provider id names a Command Code profile, default or otherwise.
-    static func isCommandCode(providerID: String) -> Bool {
-        providerID == defaultID || providerID.hasPrefix(defaultID + "-")
-    }
-
     var displayName: String { slug.map { "Command Code (\($0))" } ?? "Command Code" }
 
     static func slug(fromProviderID id: String) -> String? {

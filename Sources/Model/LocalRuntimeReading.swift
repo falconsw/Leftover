@@ -42,8 +42,8 @@ struct LocalRuntimeReading: Equatable {
         }
 
         var memoryLabel: String {
-            if memoryKind == .modelSize { return "Model size" }
-            guard let gpuMemoryBytes else { return "Memory" }
+            if memoryKind == .modelSize { return L10n.t("Model size") }
+            guard let gpuMemoryBytes else { return L10n.t("Memory") }
             return gpuMemoryBytes > 0 ? "VRAM" : "RAM"
         }
 
@@ -80,9 +80,6 @@ struct LocalRuntimeReading: Equatable {
 
         var quantizationText: String { quantizationLevel ?? "Unavailable" }
 
-        var detail: String {
-            "\(memoryLabel) \(displayedMemoryBytes == nil ? "unavailable" : memoryText) · Context limit \(contextText) · Quantization \(quantizationText)"
-        }
     }
 
     let models: [Model]

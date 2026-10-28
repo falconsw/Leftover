@@ -19,42 +19,18 @@ enum L10n {
     /// would rewrite AppKit chrome too.
     static let languageDefaultsKey = "appLanguage"
 
-    /// Where the override is kept. Injectable because the unit tests run
-    /// inside the app as their host, so `.standard` here is the *shipping
-    /// app's* preferences: without this, choosing 简体中文 in Settings would
-    /// turn every copy assertion in the suite Chinese, and a test that stored
-    /// a language would leave it behind in the real app.
+    /// Where the override is kept.
     static var defaults: UserDefaults = .standard
 
-    /// Tests set this to force a locale; nil means production rules.
-    static var testLocale: Locale?
-
     static var locale: Locale {
-        if let testLocale { return testLocale }
-
         let stored = defaults.string(forKey: languageDefaultsKey)
-        let isTest = NSClassFromString("XCTestCase") != nil
-
-        // Under XCTest the host *is* the app, so the production store here is
-        // the preferences of the installed copy of Codenotch. Choosing 简体中文
-        // in Settings would otherwise decide what a hundred copy assertions
-        // compare against — which it did, twice, mid-session. A test that
-        // means to exercise the override injects its own store and is
-        // answered by the rules below.
-        if isTest, defaults == .standard { return Locale(identifier: "en") }
-
-        // Existing assertions stay English on a Chinese Mac. A stored
-        // override still wins so a test can pin zh-Hans without testLocale.
-        if isTest, stored == nil || stored == AppLanguage.system.rawValue {
-            return Locale(identifier: "en")
-        }
 
         if let stored,
            let language = AppLanguage(rawValue: stored),
            let locale = language.locale {
             return locale
         }
-        return .current
+        return AppLanguage.systemLocale
     }
 
     /// One bundle per language, resolved once.
@@ -85,8 +61,7 @@ enum L10n {
         // `String(localized:locale:)` only formats interpolated numbers; it
         // still looks the string up in the bundle's preferred language. So the
         // locale has to be carried in by *which bundle* is asked — a bundle
-        // holding that language alone — which is what the XCTest pin needs on
-        // a Chinese Mac.
+        // holding that language alone.
         //
         // Not `LocalizedStringResource(bundle: .atURL(…))`, which does carry a
         // locale but re-resolves the bundle on every lookup and so misses
@@ -103,8 +78,7 @@ enum L10n {
     }
 
     static func apply(_ language: AppLanguage) {
-        // Absence, not the string "system": the XCTest English pin treats a
-        // missing key as follow-the-Mac.
+        // Absence, not the string "system": a missing key means follow-the-Mac.
         if language == .system {
             defaults.removeObject(forKey: languageDefaultsKey)
         } else {

@@ -3,7 +3,7 @@ import Foundation
 
 /// A command-line tool's login runs in the user's terminal, because that is
 /// where the tool expects to be: it prints a URL, opens the browser and waits
-/// for the callback on its own port. Codenotch only has to type the command
+/// for the callback on its own port. Leftover only has to type the command
 /// into a fresh window of whichever terminal is installed.
 enum TerminalCommand {
     /// Ghostty and iTerm2 before Terminal, because whoever has installed one
@@ -38,9 +38,8 @@ enum TerminalCommand {
         dirs += (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map(String.init)
         var ok = dirs.contains { FileManager.default.isExecutableFile(atPath: "\($0)/\(binary)") }
         // The login shell knows about version managers (nvm, mise) that the
-        // list above does not. Not under test: the suite must not depend on
-        // what the host Mac has installed.
-        if !ok, !Runtime.isUnderTest { ok = loginShellFinds(binary) }
+        // list above does not.
+        if !ok { ok = loginShellFinds(binary) }
         cacheLock.lock()
         installedCache[binary] = (Date(), ok)
         cacheLock.unlock()

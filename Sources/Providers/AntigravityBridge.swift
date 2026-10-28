@@ -6,7 +6,7 @@ import os
 ///
 /// Google refuses us: `retrieveUserQuotaSummary` on `cloudcode-pa` answers 403
 /// "You do not have a valid license of this product" for a personal account,
-/// because the API judges *which client* is asking and Codenotch cannot
+/// because the API judges *which client* is asking and Leftover cannot
 /// honestly claim to be Antigravity. Antigravity's window has the same problem
 /// and solves it the same way — it never calls Google for this either. It calls
 /// the language server running on this machine, which already holds the
@@ -82,38 +82,10 @@ enum AntigravityBridge {
         line.contains("agy_acp_server") || line.contains("localharness_external")
     }
 
-    /// Whether an Antigravity ACP server process is currently running.
-    static func isACPRunning(processTable: String? = nil) -> Bool {
-        let table = processTable ?? run("/bin/ps", ["-Ao", "pid,command"])
-        return table.split(separator: "\n").contains(where: isACP)
-    }
-
     /// IDE runs as language_server with --csrf_token or Antigravity.app.
     static func isIDE(_ line: Substring) -> Bool {
         (line.contains("language_server") && line.contains("--csrf_token")) ||
         line.contains("Antigravity.app")
-    }
-
-    /// Whether an Antigravity IDE process is currently running.
-    static func isIDERunning(processTable: String? = nil) -> Bool {
-        let table = processTable ?? run("/bin/ps", ["-Ao", "pid,command"])
-        return table.split(separator: "\n").contains(where: isIDE)
-    }
-
-    /// Whether an Antigravity CLI process is currently running.
-    static func isCLIRunning(processTable: String? = nil) -> Bool {
-        let table = processTable ?? run("/bin/ps", ["-Ao", "pid,command"])
-        return table.split(separator: "\n").contains(where: isCLI)
-    }
-
-    /// Whether a specific Antigravity flavor process is currently running.
-    static func isRunning(flavor: AntigravityFlavor, processTable: String? = nil) -> Bool {
-        let table = processTable ?? run("/bin/ps", ["-Ao", "pid,command"])
-        switch flavor {
-        case .ide: return isIDERunning(processTable: table)
-        case .cli: return isCLIRunning(processTable: table)
-        case .acp: return isACPRunning(processTable: table)
-        }
     }
 
     private static func endpoint(
@@ -293,12 +265,9 @@ enum AntigravityBridge {
             endpoint = nil
         }
 
-        func resetForTesting() {
-            stop()
-        }
     }
 
-    /// A server Codenotch owns, or nil until one is needed.
+    /// A server Leftover owns, or nil until one is needed.
     static let owned = Owned()
 
     /// The same flags the IDE passes its own server, minus everything that wires
@@ -313,7 +282,7 @@ enum AntigravityBridge {
     /// answer needs no project or conversation state, and sharing the IDE's
     /// would put two writers on its SQLite files if the IDE is launched while
     /// this one is still up.
-    static func arguments(token: String, appDataDir: String = "codenotch-bridge") -> [String] {
+    static func arguments(token: String, appDataDir: String = "leftover-bridge") -> [String] {
         [
             "--standalone",
             "--override_ide_name", "antigravity",

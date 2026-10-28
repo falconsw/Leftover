@@ -3,7 +3,7 @@ import Security
 
 /// The OAuth token Claude Code keeps in the login keychain.
 ///
-/// Codenotch only ever *reads* this item. Refreshing is deliberately left to
+/// Leftover only ever *reads* this item. Refreshing is deliberately left to
 /// Claude Code: minting a new token would mean writing a credential this app
 /// does not own, so when the token expires the notch says `needsAuth` and waits
 /// for Claude Code to refresh it in the ordinary course of being used.
@@ -14,14 +14,6 @@ struct ClaudeCredentials {
     let subscriptionType: String?
 
     var isExpired: Bool { expiresAt <= Date() }
-
-    /// The service the default profile's token is filed under. Other profiles
-    /// get a suffix — see `ClaudeProfile.keychainService`.
-    static let service = ClaudeProfile.defaultKeychainService
-
-    /// Reads the default profile. Kept for callers that predate profiles.
-    static func load() throws -> ClaudeCredentials { try ClaudeKeychain.default.load() }
-    static func forgetCached() { ClaudeKeychain.default.forgetCached() }
 
     /// The keychain read itself, for one service name.
     ///
@@ -206,9 +198,6 @@ final class ClaudeKeychain: @unchecked Sendable {
     private let prompt: PromptPermission
     private let refusal: KeychainRefusal
 
-    /// How long an unanswered "Allow access…" stays good for.
-    static let promptWindow = PromptPermission.window
-
     init(services: [String],
          now: @escaping () -> Date = Date.init,
          refusals: UserDefaults? = nil,
@@ -220,11 +209,8 @@ final class ClaudeKeychain: @unchecked Sendable {
         self.reader = reader
     }
 
-    /// The app's preferences in the app. Under test the host *is* the
-    /// installed app, so its real answer would decide what the tests read.
     convenience init(profile: ClaudeProfile) {
-        self.init(services: profile.keychainServices,
-                  refusals: Runtime.isUnderTest ? nil : .standard)
+        self.init(services: profile.keychainServices, refusals: .standard)
     }
 
     /// The person said no to this login and has not asked again. While true,
@@ -234,12 +220,6 @@ final class ClaudeKeychain: @unchecked Sendable {
 
     /// "Allow access…" was clicked and its read has not happened yet.
     var isAskingAgain: Bool { prompt.isOwed }
-
-    /// The default profile's reader, shared so that every caller that predates
-    /// profiles keeps sharing one cache — and so one prompt. Uses the default
-    /// profile's full candidate list, so it finds the token whether Claude Code
-    /// filed it under the bare name or the suffixed one.
-    static let `default` = ClaudeKeychain(services: ClaudeProfile.default().keychainServices)
 
     /// Reads whatever is stored, expired or not. Judging expiry is the caller's
     /// job, because "signed out" and "the token has aged out overnight" call for

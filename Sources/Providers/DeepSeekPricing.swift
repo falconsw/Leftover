@@ -63,10 +63,6 @@ enum DeepSeekPricing {
         let date: Date
     }
 
-    static func phase(at date: Date) -> Phase {
-        phase(at: date, schedule: .current)
-    }
-
     /// A year the holiday calendar does not cover falls back to the weekday
     /// rule alone, which is what DeepSeek bills on every other day.
     static func phase(at date: Date, schedule: Schedule,
@@ -88,10 +84,6 @@ enum DeepSeekPricing {
         return schedule.windows.contains {
             $0.startMinute <= minuteOfDay && minuteOfDay < $0.endMinute
         } ? .peak : .offPeak
-    }
-
-    static func nextTransition(after date: Date) -> Transition {
-        nextTransition(after: date, schedule: .current)
     }
 
     static func nextTransition(after date: Date, schedule: Schedule,

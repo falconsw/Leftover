@@ -19,7 +19,6 @@ final class PriceTable: ObservableObject {
 
     @Published var prices: [ModelPrice] { didSet { save() } }
     @Published var rate: Double { didSet { save() } }          // 1 USD = `rate` in the Mac's currency; 0 = not known yet
-    var rateKnown: Bool { rate > 0 }
     @Published var pricesUpdatedAt: Date? { didSet { save() } }
     @Published var rateUpdatedAt: Date? { didSet { save() } }
     @Published var lastError: String?
@@ -29,7 +28,7 @@ final class PriceTable: ObservableObject {
 
     static let fileURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Codenotch/costs/prices.json")
+        return base.appendingPathComponent("Leftover/costs/prices.json")
     }()
 
     /// Fallback prices from the bundle (Resources/prices-default.json); replaced
@@ -151,17 +150,6 @@ final class PriceTable: ObservableObject {
         }
     }
 
-    func price(for model: String) -> ModelPrice? {
-        prices.filter { model.hasPrefix($0.model) }.max { $0.model.count < $1.model.count }
-    }
-
-    /// Cost in USD for one turn's tokens; nil when the model has no price.
-    func usd(model: String, input: Int, output: Int, cacheRead: Int, cacheWrite: Int) -> Double? {
-        guard let p = price(for: model) else { return nil }
-        return (Double(input) * p.input + Double(output) * p.output
-                + Double(cacheRead) * p.cacheRead + Double(cacheWrite) * p.cacheWrite) / 1_000_000
-    }
-
     /// A snapshot usable off the main thread.
     var pricer: Pricer { Pricer(prices: prices, rate: rate) }
 }
@@ -187,11 +175,6 @@ enum MoneyFormat {
         f.locale = L10n.locale
         return f.string(from: NSNumber(value: amount)) ?? String(format: "%.2f %@", amount, currency)
     }
-    static func tokens(_ n: Int) -> String {
-        if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }
-        if n >= 1_000 { return String(format: "%.0fk", Double(n) / 1_000) }
-        return "\(n)"
-    }
 }
 
 
@@ -212,33 +195,6 @@ struct CostEstimator: Sendable {
     var monthWeight: Double = 0
     let pricer: Pricer
 
-    /// Money for one session: the week's spend (weekly price × share of the
-    /// allowance used) split across that week's turns by token weight.
-    func cost(at ts: Int, weight: Double, model: String, input: Int, output: Int, cacheRead: Int, cacheWrite: Int) -> Double? {
-        switch billing {
-        case .subscription:
-            if let pointValue = creditPointValue {
-                guard let p = periods.first(where: { ts >= $0.start && ts < $0.end }) ?? periods.last, p.weight > 0 else { return nil }
-                return pointValue * p.usedPct * weight / p.weight
-            }
-            guard monthlyPrice > 0 else { return nil }
-            if let p = periods.first(where: { ts >= $0.start && ts < $0.end }) ?? periods.last, p.weight > 0 {
-                let weekSpend = monthlyPrice / Self.weeksPerMonth * p.usedPct / 100
-                return weekSpend * weight / p.weight
-            }
-            // No limit periods (credit-based plan): spread the month's price over the month's tokens.
-            guard monthWeight > 0 else { return nil }
-            return monthlyPrice * weight / monthWeight
-        case .api:
-            return pricer.local(model: model, input: input, output: output, cacheRead: cacheRead, cacheWrite: cacheWrite)
-        }
-    }
-
-    static func weight(input: Int, output: Int, cacheRead: Int, cacheWrite: Int) -> Double {
-        Double(input) + Double(output) * CostStore.kOutput
-            + Double(cacheRead) * CostStore.kCacheRead + Double(cacheWrite) * CostStore.kCacheWrite
-    }
-
     static func monthStart() -> Int {
         let cal = Calendar.current
         return Int(cal.date(from: cal.dateComponents([.year, .month], from: Date()))!.timeIntervalSince1970)
@@ -247,7 +203,7 @@ struct CostEstimator: Sendable {
 
 
 /// Subscription plans and their list prices, from a JSON catalog the user can
-/// edit (Application Support/Codenotch/costs/plans.json, seeded from the bundle) or point
+/// edit (Application Support/Leftover/costs/plans.json, seeded from the bundle) or point
 /// at a URL that is re-read once a day. Nothing about plans lives in code.
 @MainActor
 final class PlanCatalog: ObservableObject {
@@ -259,7 +215,7 @@ final class PlanCatalog: ObservableObject {
 
     static let fileURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Codenotch/costs/plans.json")
+        return base.appendingPathComponent("Leftover/costs/plans.json")
     }()
     static let remoteKey = "plansURL"
     var remoteURL: String {
@@ -313,10 +269,6 @@ final class PlanCatalog: ObservableObject {
         }
     }
 
-    func name(for tier: String) -> String {
-        plans[tier]?.name ?? tier.replacingOccurrences(of: "default_claude_", with: "").replacingOccurrences(of: "_", with: " ").capitalized
-    }
-
     /// Monthly list price in `currency` when the catalog has it, else the USD
     /// price converted at `rate` (nil when neither is possible).
     func monthly(for tier: String, currency: String, rate: Double) -> Double? {
@@ -325,6 +277,5 @@ final class PlanCatalog: ObservableObject {
         if let usd = plan.prices["USD"], rate > 0 { return usd * rate }
         return nil
     }
-    func usd(for tier: String) -> Double? { plans[tier]?.prices["USD"] }
     func creditUSD(for tier: String) -> Double? { plans[tier]?.creditUSD }
 }

@@ -106,14 +106,6 @@ struct AntigravityActivity: Equatable {
         return formatter.date(from: value)
     }
 
-    /// What the cell says. Deliberately a count with the limit's absence stated,
-    /// rather than a number that looks like a percentage.
-    var summary: String {
-        guard requestsToday > 0 else { return L10n.t("no requests today") }
-        if requestsToday == 1 { return L10n.t("~\(requestsToday) request today") }
-        else { return L10n.t("~\(requestsToday) requests today") }
-    }
-
     /// What the tooltip's row is called.
     ///
     /// A bare `0` on a day Antigravity has not been opened reads as the app

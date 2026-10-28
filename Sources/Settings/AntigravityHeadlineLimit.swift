@@ -15,5 +15,4 @@ enum AntigravityHeadlineLimit: String, CaseIterable, Identifiable {
         }
     }
 
-    var explanation: String { title }
 }

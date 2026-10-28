@@ -31,7 +31,7 @@ actor GitHubCopilotProvider: UsageProvider {
         request.setValue("Bearer \(credentials.token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-        request.setValue("Codenotch", forHTTPHeaderField: "User-Agent")
+        request.setValue("Leftover", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
 
         let (data, response) = try await session.data(for: request)
@@ -249,9 +249,9 @@ enum GitHubCopilotUsage {
 
     private static func label(for id: String) -> String {
         switch id {
-        case "premium_interactions": return "Premium requests"
-        case "chat":                return "Chat requests"
-        case "completions":         return "Completions"
+        case "premium_interactions": return L10n.t("Premium requests")
+        case "chat":                return L10n.t("Chat requests")
+        case "completions":         return L10n.t("Completions")
         default:
             return id.replacingOccurrences(of: "_", with: " ").capitalized
         }

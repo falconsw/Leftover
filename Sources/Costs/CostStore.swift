@@ -19,15 +19,6 @@ enum CostWindow: String {
         }
     }
 
-    /// Maps a provider's window label (as parsed from the API) to a cost window.
-    static func from(label: String) -> CostWindow? {
-        switch label {
-        case "Current session": return .session
-        case "All models", "Weekly": return .weekly
-        case "Credits": return .credits
-        default:                return nil   // per-model scoped windows are a subset
-        }
-    }
 }
 
 /// One assistant turn, deduplicated per request. Numbers only — never content.
@@ -99,7 +90,7 @@ final class CostStore {
     static let unexplainedKey = "__unexplained__"
 
     private var db: OpaquePointer?
-    let queue = DispatchQueue(label: "com.vinz.codenotch.costs.cost")
+    let queue = DispatchQueue(label: "com.falconsw.leftover.costs.cost")
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
     // Weights that split a limit delta across turns within one interval. They are
@@ -401,7 +392,7 @@ final class CostStore {
         if t0 > 0 { return t0 }
 
         // Nothing attributed and no reset seen: the period starts at the first
-        // reading we took. Consumption from before Codenotch was running is not ours
+        // reading we took. Consumption from before Leftover was running is not ours
         // to explain.
         if let st = prepare("SELECT MIN(ts) FROM quota_sample WHERE window=?1") {
             bind(st, 1, window.rawValue)
@@ -447,8 +438,8 @@ final class CostStore {
 
     /// Attribution for the current period of a window, largest first.
     ///
-    /// Observed deltas only cover the stretches Codenotch was running for. Anything
-    /// else — the app closed, the Mac asleep, a period that began before Codenotch
+    /// Observed deltas only cover the stretches Leftover was running for. Anything
+    /// else — the app closed, the Mac asleep, a period that began before Leftover
     /// was ever launched — would otherwise leave the list adding up to less than
     /// the percentage on the card. The remainder is therefore spread across the
     /// turns recorded in this period, so the rows always account for the whole of
@@ -468,7 +459,7 @@ final class CostStore {
 
             let latest = lastSample(window)
             // A reset time is the firmer boundary: it tells us where this period
-            // began even if Codenotch never saw the reset happen.
+            // began even if Leftover never saw the reset happen.
             if let resets = latest?.resetsAt {
                 periodStart = max(periodStart, resets - Int(window.duration))
             }
@@ -533,19 +524,6 @@ final class CostStore {
         }
     }
 
-    /// Diagnostics for the settings menu.
-    func stats() -> (events: Int, files: Int, errors: Int) {
-        queue.sync {
-            func count(_ sql: String) -> Int {
-                guard let st = prepare(sql) else { return 0 }
-                defer { sqlite3_finalize(st) }
-                return sqlite3_step(st) == SQLITE_ROW ? Int(sqlite3_column_int64(st, 0)) : 0
-            }
-            return (count("SELECT COUNT(*) FROM usage_event"),
-                    count("SELECT COUNT(*) FROM file_cursor"),
-                    count("SELECT COUNT(*) FROM parse_error"))
-        }
-    }
 }
 
 // MARK: - Presentation
@@ -588,17 +566,6 @@ enum CostRange: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Used as the section heading, where there is room for a full phrase.
-    var title: String {
-        switch self {
-        case .today:   return L10n.t("Today")
-        case .session: return L10n.t("This session")
-        case .weekly:  return L10n.t("This week")
-        case .month:   return L10n.t("This month")
-        case .allTime: return L10n.t("All time")
-        }
-    }
-
     /// Used in the picker, where four labels have to fit on one line.
     var shortTitle: String {
         switch self {
@@ -634,8 +601,6 @@ enum CostRange: String, CaseIterable, Identifiable {
         }
     }
 
-    /// True when percentages mean "share of your own work", not "share of the limit".
-    var isShare: Bool { window == nil }
 }
 
 extension CostStore {
@@ -672,51 +637,7 @@ extension CostStore {
 
 // MARK: - Token totals (for money estimates and the timeline)
 
-struct UsageAgg: Identifiable {
-    var sessionID: String
-    var project: String
-    var cwd: String
-    var branch: String?
-    var model: String            // the model of the latest turn
-    var models: Set<String> = []
-    var input = 0, output = 0, cacheRead = 0, cacheWrite = 0
-    var turns = 0
-    var first: Int, last: Int    // unix seconds
-    var id: String { sessionID }
-    var tokens: Int { input + output + cacheRead + cacheWrite }
-}
-
 extension CostStore {
-    /// One aggregate per session for turns in [from, to].
-    func sessions(from: Int, to: Int) -> [UsageAgg] {
-        var out: [String: UsageAgg] = [:]
-        queue.sync {
-            let sql = "SELECT session_id, project, cwd, branch, model, input, output, cache_read, cache_write, ts"
-                    + " FROM usage_event WHERE ts >= ?1 AND ts <= ?2 ORDER BY ts"
-            guard let st = prepare(sql) else { return }
-            defer { sqlite3_finalize(st) }
-            sqlite3_bind_int64(st, 1, Int64(from))
-            sqlite3_bind_int64(st, 2, Int64(to))
-            while sqlite3_step(st) == SQLITE_ROW {
-                let sid = text(st, 0) ?? ""
-                let ts = Int(sqlite3_column_int64(st, 9))
-                let model = text(st, 4) ?? ""
-                var a = out[sid] ?? UsageAgg(sessionID: sid, project: text(st, 1) ?? "", cwd: text(st, 2) ?? "",
-                                             branch: text(st, 3), model: model, first: ts, last: ts)
-                a.model = model
-                a.models.insert(model)
-                a.input += Int(sqlite3_column_int64(st, 5))
-                a.output += Int(sqlite3_column_int64(st, 6))
-                a.cacheRead += Int(sqlite3_column_int64(st, 7))
-                a.cacheWrite += Int(sqlite3_column_int64(st, 8))
-                a.turns += 1
-                a.first = min(a.first, ts)
-                a.last = max(a.last, ts)
-                out[sid] = a
-            }
-        }
-        return out.values.sorted { $0.first < $1.first }
-    }
 
     /// Estimated spend per project for turns in [from, to], in the user's currency.
     func projectCosts(from: Int, to: Int, pricer: Pricer) -> [String: Double] {
@@ -754,28 +675,6 @@ extension CostStore {
             bind(st, 3, window.rawValue)
             while sqlite3_step(st) == SQLITE_ROW {
                 out[text(st, 0) ?? Self.unexplainedKey] = sqlite3_column_double(st, 1)
-            }
-        }
-        return out
-    }
-
-    /// Weekly limit periods seen so far: start, end and how much of the
-    /// allowance was used in each (the highest reading of that period).
-    struct WeeklyPeriod { var start: Int; var end: Int; var usedPct: Double }
-    func weeklyPeriods() -> [WeeklyPeriod] { periods(window: .weekly) }
-
-    func periods(window: CostWindow) -> [WeeklyPeriod] {
-        var out: [WeeklyPeriod] = []
-        queue.sync {
-            guard let st = prepare("SELECT resets_at, MAX(pct), MIN(ts) FROM quota_sample WHERE window=?1 AND resets_at IS NOT NULL GROUP BY resets_at ORDER BY resets_at") else { return }
-            defer { sqlite3_finalize(st) }
-            bind(st, 1, window.rawValue)
-            while sqlite3_step(st) == SQLITE_ROW {
-                let end = Int(sqlite3_column_int64(st, 0))
-                let firstSeen = Int(sqlite3_column_int64(st, 2))
-                // Credit cycles have no fixed length: start where the previous one ended, else at the first sample.
-                let start = window == .credits ? (out.last?.end ?? firstSeen) : end - Int(window.duration)
-                out.append(WeeklyPeriod(start: start, end: end, usedPct: sqlite3_column_double(st, 1)))
             }
         }
         return out

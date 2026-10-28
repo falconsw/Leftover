@@ -7,10 +7,10 @@ import os
 @MainActor
 final class UsageStore: ObservableObject {
     @Published private(set) var snapshots: [ProviderSnapshot] = [] {
-        didSet { updateNotchSnapshots() }
+        didSet { updatePanelSnapshots() }
     }
     /// Settings and every display share the same ordered, visible model cells.
-    @Published private(set) var notchSnapshots: [ProviderSnapshot] = []
+    @Published private(set) var panelSnapshots: [ProviderSnapshot] = []
     /// Providers with a fetch in flight, so the cell can show it happening.
     @Published private(set) var refreshing: Set<String> = []
     /// Providers whose last fetch was refused by macOS, cleared as soon as one
@@ -33,7 +33,7 @@ final class UsageStore: ObservableObject {
     private var providers: [UsageProvider]
 
     /// Names chosen in Settings, by provider id. Applied to every snapshot the
-    /// store publishes, so the notch, the menu bar, the cards and the
+    /// store publishes, so the panel, the menu bar, the cards and the
     /// notifications all call an account what its owner does.
     var nicknames: [String: String] = [:] {
         didSet {
@@ -52,24 +52,6 @@ final class UsageStore: ObservableObject {
             snapshot.displayName = provider.displayName
         }
         return snapshot
-    }
-
-    func registerCustomProviders(_ custom: [UsageProvider]) {
-        providers.removeAll { $0.id.hasPrefix("custom-endpoint-") }
-        providers.append(contentsOf: custom)
-        for provider in custom {
-            publish(Self.placeholder(provider))
-        }
-        refreshNow()
-    }
-
-    func registerRemoteProviders(_ remote: [UsageProvider]) {
-        providers.removeAll { RemoteHost.isRemote(providerID: $0.id) }
-        providers.append(contentsOf: remote)
-        for provider in remote {
-            publish(Self.placeholder(provider))
-        }
-        refreshNow()
     }
 
     /// Provider ids plus any model cells currently on screen.
@@ -106,7 +88,7 @@ final class UsageStore: ObservableObject {
     /// The order the user has put the rings in, as provider ids.
     ///
     /// Held here rather than at each consumer because there are two consumers —
-    /// the notch reads `notchSnapshots`, settings reads `providerSummaries` — and
+    /// the panel reads `panelSnapshots`, settings reads `providerSummaries` — and
     /// they have to agree. Sorting each of them separately makes that agreement
     /// something two call sites have to keep remembering.
     @Published var order: [String] = [] {
@@ -284,18 +266,18 @@ final class UsageStore: ObservableObject {
             snapshot.status = .stale(since: remembered.fetchedAt)
             return snapshot
         }
-        updateNotchSnapshots()
+        updatePanelSnapshots()
     }
 
-    private func updateNotchSnapshots() {
-        let cells = ProviderOrder.cells(from: snapshots, keeping: notchSnapshots)
-        notchSnapshots = ProviderOrder.arrange(cells, by: order, id: \.id)
+    private func updatePanelSnapshots() {
+        let cells = ProviderOrder.cells(from: snapshots, keeping: panelSnapshots)
+        panelSnapshots = ProviderOrder.arrange(cells, by: order, id: \.id)
             .filter { !disconnected.contains($0.id) }
     }
 
     /// Model discovery does not need to re-read any cloud account's credential.
     var localModelSummaries: [ProviderSummary] {
-        ProviderOrder.cells(from: snapshots, keeping: notchSnapshots).compactMap { cell in
+        ProviderOrder.cells(from: snapshots, keeping: panelSnapshots).compactMap { cell in
             guard let model = cell.localModel else { return nil }
             let runtime = providers.first { $0.id == cell.providerID }?.displayName ?? cell.displayName
             return ProviderSummary(kind: .localRuntime, localModel: model,
@@ -311,7 +293,6 @@ final class UsageStore: ObservableObject {
         let summaries = orderedProviders.flatMap { provider in
             let summary = ProviderSummary(kind: provider.kind, id: provider.id, name: provider.displayName,
                             glyph: provider.glyph,
-                            customIconFilename: provider.customIconFilename,
                             account: disconnected.contains(provider.id) ? nil : provider.account(),
                             signIn: provider.signInRoute,
                             wasRefusedAccess: refusedAccess.contains(provider.id),
@@ -568,7 +549,7 @@ final class UsageStore: ObservableObject {
             guard let provider = providers.first(where: { $0.id == id }) else { continue }
             // The same two outcomes any other failure has: a provider worth
             // showing without a reading ages in place, one that is not drops
-            // out of the notch entirely.
+            // out of the panel entirely.
             if let stale = degraded(provider: provider, error: UsageProviderError.timedOut) {
                 publish(stale)
             } else {
@@ -580,10 +561,6 @@ final class UsageStore: ObservableObject {
             refreshing.remove(id)
         }
         isRefreshing = false
-    }
-
-    func refresh() async {
-        await refresh(freshness: freshnessWanted)
     }
 
     func refresh(freshness: UsageFreshness, includeIdleSkipped: Bool = true) async {
@@ -742,7 +719,7 @@ final class UsageStore: ObservableObject {
     }
 
     /// Tell consumers that a provider has just confirmed authentication. The
-    /// refresh updates the notch; the revision updates Settings' account row.
+    /// refresh updates the panel; the revision updates Settings' account row.
     func providerAuthenticationChanged(providerID: String) {
         providerAccountRevision &+= 1
         refresh(providerID: providerID)
@@ -776,7 +753,7 @@ final class UsageStore: ObservableObject {
     /// something you do while already signed in, so the shortcut `signIn` takes
     /// when a credential exists is exactly wrong here.
     ///
-    /// Codenotch cannot switch the account itself. The credential belongs to
+    /// Leftover cannot switch the account itself. The credential belongs to
     /// Claude Code, Cursor or Codex, and the most this can honestly do is open
     /// the thing that owns it.
     @discardableResult
@@ -820,7 +797,7 @@ final class UsageStore: ObservableObject {
                 snapshot.headlineID = ag.resolveHeadlineID(for: snapshot.windows)
                 snapshot.weeklyID = ag.resolveWeeklyID(for: snapshot.windows)
                 snapshots[idx] = snapshot
-                updateNotchSnapshots()
+                updatePanelSnapshots()
             }
         }
     }
@@ -930,32 +907,6 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    /// Exposed for the tests: the store never invents a reading, so what a
-    /// failure looks like is worth pinning down.
-    static func statusForTesting(_ error: Error) -> ProviderStatus { status(for: error) }
-
-    /// Exposed so a test can hold the shipped defaults to the margin they are
-    /// supposed to keep, without re-typing the numbers on both sides.
-    var staleAfterForTesting: TimeInterval { staleAfter }
-    /// Exposed so a test can prove the flag was released rather than infer it
-    /// from a second refresh happening to work.
-    var isRefreshingForTesting: Bool { isRefreshing }
-    var inFlightForTesting: Set<String> { Set(fetchTasks.keys) }
-    var idleRefreshIntervalForTesting: TimeInterval { idleRefreshInterval }
-    /// Exposed together, so a test can hold the shipped schedule to the shape it
-    /// claims rather than to whatever the numbers happen to be: a tick fine
-    /// enough to express the busy interval, and a busy interval well inside the
-    /// idle one.
-    var refreshIntervalForTesting: TimeInterval { refreshInterval }
-    var busyRefreshIntervalForTesting: TimeInterval { busyRefreshInterval }
-    var onLookIntervalForTesting: TimeInterval { onLookInterval }
-    /// Exposed so a test can wait for what a fire-and-forget refresh started,
-    /// rather than sleeping for a plausible length of time and hoping.
-    func settleForTesting() async {
-        await refreshTask?.value
-        for task in Array(fetchTasks.values) { await task.value }
-    }
-
     private static func status(for error: Error) -> ProviderStatus {
         switch error {
         case UsageProviderError.needsAuth:
@@ -1001,7 +952,6 @@ final class UsageStore: ObservableObject {
             windows: [],
             kind: provider.kind
         )
-        snapshot.customIconFilename = provider.customIconFilename
         return snapshot
     }
 }

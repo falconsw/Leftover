@@ -66,7 +66,7 @@ enum KiloUsage {
     /// ISO stamp with milliseconds the plain formatter refuses. The period
     /// gives the bar's exact length without any guessing from the id, which
     /// the backend keeps as an opaque slug.
-    static func windows(fromJSON json: String, now: Date = Date()) throws -> [LimitWindow] {
+    static func windows(fromJSON json: String) throws -> [LimitWindow] {
         let payload = try unwrap(json: json)
         guard let body = payload as? [String: Any],
               let subscription = body["subscription"] as? [String: Any],
@@ -85,7 +85,7 @@ enum KiloUsage {
             let hours = periodHours(entry["period"] as? [String: Any])
             return LimitWindow(
                 id: id,
-                label: label(for: entry, hours: hours),
+                label: label(hours: hours),
                 usedFraction: min(max(fraction, 0), 1),
                 resetsAt: resetsAt,
                 duration: hours.map { $0 * 3600 }
@@ -103,7 +103,7 @@ enum KiloUsage {
     /// A five-hour coding window reads "5h limit", a month "Monthly quota" —
     /// the same words the Kilo dashboard prints, from the period the server
     /// sent rather than from a guessed unit.
-    private static func label(for entry: [String: Any], hours: Double?) -> String {
+    private static func label(hours: Double?) -> String {
         switch hours {
         case 1:      return L10n.t("Hourly limit")
         case 24:     return L10n.t("Daily limit")

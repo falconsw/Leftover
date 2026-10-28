@@ -55,13 +55,6 @@ enum MuseUsage {
         }
     }
 
-    /// Parses complete JSON lines into samples. Anything else — other events,
-    /// malformed lines, records without a timestamp — is skipped: a usage
-    /// total must never be padded with guesses.
-    static func samples(from text: String) -> [Sample] {
-        samples(fromLines: text.split(separator: "\n").map(String.init))
-    }
-
     static func samples(fromLines lines: [String]) -> [Sample] {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -246,20 +239,6 @@ enum MuseUsage {
         ]
     }
 
-    static func windows(from samples: [Sample], now: Date,
-                        calendar: Calendar) -> [LimitWindow] {
-        let today = totalsByDay(from: samples, calendar: calendar)[dayKey(for: now, calendar: calendar)]
-            ?? DayTotals()
-        let share = today.output > 0 ? Double(today.reasoning) / Double(today.output) : nil
-        return [
-            LimitWindow(id: "today", label: L10n.t("Tokens today"),
-                        used: today.input + today.output,
-                        detail: "\(LimitWindow.compact(today.input)) in · \(LimitWindow.compact(today.output)) out"),
-            LimitWindow(id: "requests", label: L10n.t("Requests today"), used: today.requests),
-            LimitWindow(id: "reasoning", label: L10n.t("Reasoning share"),
-                        detail: share.map { "\(Percent.text(for: $0))%" } ?? "—"),
-        ]
-    }
 }
 
 /// The running read of muse's session logs.

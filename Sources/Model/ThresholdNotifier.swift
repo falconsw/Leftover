@@ -56,7 +56,7 @@ final class ThresholdNotifier {
         let level = percent >= 100 ? 100 : percent >= 80 ? 80 : 0
 
         // The first reading only records. Every provider arrives with no
-        // history when Codenotch launches, and after a restart that reading is
+        // history when Leftover launches, and after a restart that reading is
         // the archived one, often already past a threshold; treating it as a
         // crossing rang "limit reached" on every start.
         guard let previous = crossed[snapshot.id] else {
@@ -96,10 +96,10 @@ enum ThresholdAlerts {
                 : L10n.t("\(alert.providerName) is at \(alert.usedPercent)%")
             if alert.threshold >= 100 {
                 content.body = alert.resetsAt.map {
-                    L10n.t("Its \(alert.windowLabel.lowercased()) limit is spent — resets \($0.formatted(date: .omitted, time: .shortened))")
-                } ?? L10n.t("Its \(alert.windowLabel.lowercased()) limit is spent.")
+                    L10n.t("Its \(alert.windowLabel.lowercased(with: L10n.locale)) limit is spent — resets \($0.formatted(date: .omitted, time: .shortened))")
+                } ?? L10n.t("Its \(alert.windowLabel.lowercased(with: L10n.locale)) limit is spent.")
             } else {
-                content.body = L10n.t("\(alert.usedPercent)% of its \(alert.windowLabel.lowercased()) limit used.")
+                content.body = L10n.t("\(alert.usedPercent)% of its \(alert.windowLabel.lowercased(with: L10n.locale)) limit used.")
             }
             // One thread per provider, so two limits ending together read as
             // two notes, not one merged pile.
@@ -125,7 +125,7 @@ enum UsageAlertNotifications {
             guard granted else { return }
 
             let content = UNMutableNotificationContent()
-            let window = event.windowLabel.lowercased()
+            let window = event.windowLabel.lowercased(with: L10n.locale)
             switch event.kind {
             case .reset:
                 content.title = L10n.t("\(event.providerName) has reset")

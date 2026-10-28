@@ -39,16 +39,6 @@ struct ActivitySummary: Equatable {
         }
     }
 
-    /// One short word, for the tooltip.
-    var label: String {
-        switch state {
-        case .working: return L10n.t("working")
-        case .waiting: return L10n.t("waiting")
-        case .success: return L10n.t("complete")
-        case .idle:    return L10n.t("idle")
-        }
-    }
-
     /// The ring draws working either as the neutral arc, which uses this colour
     /// (the default), or as the brand-coloured `BusyWave` when the user chose
     /// the breathing disc in Settings. The neutral value stays off the green /
@@ -64,5 +54,4 @@ struct ActivitySummary: Equatable {
         }
     }
 
-    var waitingSessions: [AgentSession] { sessions.filter { $0.state == .waiting } }
 }

@@ -58,7 +58,7 @@ final class CostModel: ObservableObject {
         // One database and one transcript watcher per account; the default
         // account keeps the original file name so history carries over.
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("Codenotch/costs", isDirectory: true)
+            .appendingPathComponent("Leftover/costs", isDirectory: true)
         // The original single-account database keeps its name for the default
         // Claude login; every other account (Codex included) gets its own file.
         let dbName = "agentcost-\(account.id).sqlite"
@@ -77,7 +77,7 @@ final class CostModel: ObservableObject {
     }
 
     /// Called after every usage poll. Samples the limit and attributes any increase.
-    /// Codenotch's windows carry ids: "session"/"primary" are the rolling
+    /// Leftover's windows carry ids: "session"/"primary" are the rolling
     /// session, "weekly_all"/"secondary" the week, anything named credits the
     /// credit cap of a Business seat.
     func observe(_ snapshots: [ProviderSnapshot]) {
@@ -182,16 +182,6 @@ final class CostModel: ObservableObject {
         }
     }
 
-    var store_: CostStore? { store }
-
-    /// Diagnostics line for the settings menu.
-    func statsLine() -> String? {
-        guard let store else { return nil }
-        let st = store.stats()
-        guard st.events > 0 || st.files > 0 else { return nil }
-        if st.errors > 0 { return L10n.t("\(st.events) turns · \(st.files) files · \(st.errors) skipped") }
-        return L10n.t("\(st.events) turns · \(st.files) files")
-    }
 }
 
 

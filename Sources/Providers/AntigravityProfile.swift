@@ -82,11 +82,6 @@ struct AntigravityProfile: Equatable, Hashable {
     /// `Antigravity`, or `Antigravity (work)`.
     var displayName: String { slug.map { "Antigravity (\($0))" } ?? "Antigravity" }
 
-    /// Whether a provider id names an Antigravity profile, default or otherwise.
-    static func isAntigravity(providerID: String) -> Bool {
-        providerID == defaultID || (providerID.hasPrefix(directoryPrefix + "-") && slug(fromProviderID: providerID) != nil)
-    }
-
     /// The slug back out of a provider id.
     static func slug(fromProviderID id: String) -> String? {
         let prefix = directoryPrefix + "-"
@@ -97,9 +92,6 @@ struct AntigravityProfile: Equatable, Hashable {
 
     var authURL: URL { configDirectory.appendingPathComponent("oauth_creds.json") }
     var brainDirectory: URL { configDirectory.appendingPathComponent("brain") }
-
-    var keychainService: String? { slug == nil ? "gemini" : nil }
-    var keychainAccount: String? { slug == nil ? "antigravity" : nil }
 
     var displayPath: String {
         let home = NSHomeDirectory()

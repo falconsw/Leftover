@@ -9,7 +9,7 @@ import SwiftUI
 /// speaks in `ample` / `watch` / `critical`.
 ///
 /// Bounded by `outerRadius`, the old spinner's outer edge, so the disc never
-/// reaches the usage ring and the gap `NotchLayoutTests` pins still holds.
+/// reaches the usage ring.
 struct BusyWave: NSViewRepresentable {
     let color: Color
     let outerRadius: CGFloat

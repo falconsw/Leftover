@@ -13,7 +13,7 @@ import Foundation
 /// own documentation uses in its examples.
 enum LMStudioCredentials {
     static let keychainService = "lmstudio-api-token"
-    static let keychainAccount = "codenotch"
+    static let keychainAccount = "leftover"
     static let environmentKey = "LM_API_TOKEN"
 
     /// Posted after the stored token changes, so a live connection can
@@ -48,33 +48,6 @@ enum LMStudioCredentials {
         }
         return keychain()
     }
-
-    /// Whether a token is available, judged without a data read: the
-    /// environment variable, else the item's attributes, which are free to
-    /// ask about unlike its contents. Never the cache — that would not
-    /// reflect a `store`/`delete` that just happened.
-    static var isPresent: Bool {
-        load(keychain: { nil }) != nil || KeychainItem.modifiedAt(service: keychainService, account: keychainAccount) != nil
-    }
-
-    @discardableResult
-    static func store(_ token: String) -> Bool {
-        cache.forget()
-        let stored = KeychainItem.store(service: keychainService, account: keychainAccount,
-                                        value: token.trimmingCharacters(in: .whitespacesAndNewlines))
-        if stored { NotificationCenter.default.post(name: didChange, object: nil) }
-        return stored
-    }
-
-    @discardableResult
-    static func delete() -> Bool {
-        cache.forget()
-        let deleted = KeychainItem.delete(service: keychainService, account: keychainAccount)
-        if deleted { NotificationCenter.default.post(name: didChange, object: nil) }
-        return deleted
-    }
-
-    static func forgetCached() { cache.forget() }
 
     /// The two halves LM Studio reads a token as.
     ///
@@ -151,15 +124,15 @@ enum LMStudioError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .invalidEndpoint:
-            return "Use an HTTP address on this Mac, such as http://127.0.0.1:1234."
+            return L10n.t("Use an HTTP address on this Mac, such as http://127.0.0.1:1234.")
         case .unavailable:
-            return "LM Studio server unavailable. Start the server in LM Studio's Developer tab and check the address."
+            return L10n.t("LM Studio server unavailable. Start the server in LM Studio's Developer tab and check the address.")
         case .invalidResponse:
-            return "This server did not return an LM Studio model listing."
+            return L10n.t("This server did not return an LM Studio model listing.")
         case .needsToken:
-            return "LM Studio requires an API token. Create one in LM Studio → Developer → Server Settings and paste it in Settings → LM Studio."
+            return L10n.t("LM Studio requires an API token. Create one in LM Studio → Developer → Server Settings and paste it in Settings → LM Studio.")
         case .http(let code):
-            return "LM Studio returned HTTP \(code). Check the server address and configuration."
+            return L10n.t("LM Studio returned HTTP \(code). Check the server address and configuration.")
         }
     }
 }

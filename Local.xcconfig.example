@@ -1,0 +1,3 @@
+// Copy to Local.xcconfig (untracked) to sign with your Developer ID.
+CODE_SIGN_IDENTITY = Developer ID Application
+DEVELOPMENT_TEAM = XXXXXXXXXX

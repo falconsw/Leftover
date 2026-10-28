@@ -5,7 +5,7 @@ import SQLite3
 /// The session Cursor keeps for itself — the editor's SQLite store first,
 /// then the `cursor-agent` login if that store is missing or signed out.
 ///
-/// Codenotch only ever reads it, the same bargain as Claude Code's keychain
+/// Leftover only ever reads it, the same bargain as Claude Code's keychain
 /// token: the owning tool mints and refreshes it, we borrow the current value.
 /// The editor database is opened read-only and never `immutable`, so a running
 /// editor is not blocked and a rotated token is not served from a stale
@@ -117,18 +117,6 @@ struct CursorCredentials {
         guard let account, !account.isEmpty else { throw UsageProviderError.needsAuth }
 
         return CursorCredentials(accountID: account, accessToken: token)
-    }
-
-    /// Same precedence as `load()`, with the agent token injected so the
-    /// fallback can be tested without a keychain.
-    static func load(editorStore: URL, agentToken: String?, agentConfig: URL,
-                     now: Date = Date()) throws -> CursorCredentials {
-        do {
-            return try load(from: editorStore)
-        } catch UsageProviderError.needsAuth {
-            guard let agentToken, !agentToken.isEmpty else { throw UsageProviderError.needsAuth }
-            return try session(fromAgentToken: agentToken, configURL: agentConfig, now: now)
-        }
     }
 
     /// Open the editor when it is installed; otherwise name the CLI command.

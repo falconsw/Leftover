@@ -1,14 +1,31 @@
 import AppKit
 import SwiftUI
 
+/// The settings window, as a panel that does not activate the app.
+///
+/// A menubar app that activates itself puts its own menus in the screen's
+/// menu bar — the app name, and View, Window and Help after it — and a
+/// menubar app that owns the top of the screen is a different thing from one
+/// that shows a window when asked. A non-activating panel is the way out: it
+/// comes to the front and takes the keyboard without the app ever becoming
+/// the active application, so the menu bar stays where it was.
+///
+/// `canBecomeKey` has to be said out loud: a panel says no by default, and a
+/// panel that cannot be key cannot hold the focus of a text field.
+final class SettingsPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    /// Never the main window — the app has no main window to speak of, and a
+    /// main window would put the app's menus in the menu bar.
+    override var canBecomeMain: Bool { false }
+}
+
 /// Hosts the settings sheet in its own window.
 ///
-/// A real window rather than a panel attached to the notch: settings are a place
-/// you go, not something you glance at, and a floating panel that follows the
-/// notch would be one more thing hovering over the screen edge.
+/// A real window rather than something attached to the panel: settings are a
+/// place you go, not something you glance at.
 @MainActor
 final class SettingsWindowController: NSObject, NSWindowDelegate {
-    private var window: NSWindow?
+    private var window: SettingsPanel?
     /// Ends text editing when a click lands anywhere but a text field.
     private var clickAwayMonitor: Any?
     private let preferences: Preferences
@@ -20,77 +37,61 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let signIn: (String) -> Bool
     private let switchAccount: (String) -> Bool
     private let retry: (String) -> Void
-    private let updater: Updater
-    private let ollamaRelay: OllamaActivityRelay?
-    private let lmstudioMetrics: LMStudioMetrics?
-    private let omlxMetrics: OMLXMetrics?
     private let usageStore: UsageStore?
-    let phoneLinkPairing: PhoneLinkPairing?
-    let phoneLinkRegistry: PhoneLinkRegistry?
-    let phoneLinkServerStatus: PhoneLinkServerStatus?
-    private let resetPosition: () -> Void
-    private let quit: () -> Void
-    private let previewResetAlert: (() -> Void)?
-    private let previewSessionLimitAlert: (() -> Void)?
-    private let previewWeeklyLimitAlert: (() -> Void)?
     private let sendTestNotification: (() -> Void)?
 
     init(preferences: Preferences,
          providers: @escaping () -> [ProviderSummary],
-         updater: Updater,
          signOut: @escaping (String) -> Void,
          signIn: @escaping (String) -> Bool,
          switchAccount: @escaping (String) -> Bool,
          retry: @escaping (String) -> Void,
-         resetPosition: @escaping () -> Void,
-         quit: @escaping () -> Void,
-         previewResetAlert: (() -> Void)? = nil,
-         previewSessionLimitAlert: (() -> Void)? = nil,
-         previewWeeklyLimitAlert: (() -> Void)? = nil,
          sendTestNotification: (() -> Void)? = nil,
-         usageStore: UsageStore? = nil,
-         ollamaRelay: OllamaActivityRelay? = nil,
-         lmstudioMetrics: LMStudioMetrics? = nil, omlxMetrics: OMLXMetrics? = nil, phoneLinkPairing: PhoneLinkPairing? = nil, phoneLinkRegistry: PhoneLinkRegistry? = nil, phoneLinkServerStatus: PhoneLinkServerStatus? = nil) {
-        self.ollamaRelay = ollamaRelay
-        self.lmstudioMetrics = lmstudioMetrics
-        self.omlxMetrics = omlxMetrics
+         usageStore: UsageStore? = nil) {
         self.usageStore = usageStore
-        self.phoneLinkPairing = phoneLinkPairing
-        self.phoneLinkRegistry = phoneLinkRegistry
-        self.phoneLinkServerStatus = phoneLinkServerStatus
-        self.resetPosition = resetPosition
-        self.quit = quit
-        self.previewResetAlert = previewResetAlert
-        self.previewSessionLimitAlert = previewSessionLimitAlert
-        self.previewWeeklyLimitAlert = previewWeeklyLimitAlert
         self.sendTestNotification = sendTestNotification
         self.switchAccount = switchAccount
         self.retry = retry
-        self.updater = updater
         self.preferences = preferences
         self.providers = providers
         self.signOut = signOut
         self.signIn = signIn
     }
 
-    /// Bring the window to the front from an accessory app.
+    /// Bring the window to the front.
     ///
-    /// `makeKeyAndOrderFront` plus `activate` alone were not enough here: an
-    /// accessory app — anything but `AppPresence.dock` — is restricted by
-    /// macOS from properly activating and compositing its own windows, so the
-    /// window could be created, "visible" by `NSWindow`'s own bookkeeping, and
-    /// still never actually drawn on screen (its `occlusionState` missing
-    /// `.visible` is what gave this away). A `.regular` app has no such
-    /// restriction, so this promotes to one for as long as the window is
-    /// open and restores whatever `AppPresence` actually chose once it
-    /// closes — settings staying open is the one moment the Dock is allowed
-    /// to gain an icon it did not ask for.
+    /// The app stays an accessory, and it is never activated: no Dock icon,
+    /// and — the part that matters here — no menu bar of its own appearing at
+    /// the top of the screen while the settings are open. It used to promote
+    /// itself to a regular app for as long as the window was open, and that
+    /// promotion is what put Leftover's own menus up there. A menubar app
+    /// that owns the whole top of the screen is a different thing from one
+    /// that shows a window when asked.
+    ///
+    /// The panel is a non-activating one, which is how it comes to the front
+    /// and takes the keyboard without the app becoming active.
     private func surface(_ window: NSWindow) {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         Self.startUnfocused(window)
+    }
+
+    /// Put the window in the middle of the screen the pointer is on.
+    ///
+    /// `NSWindow.center()` centres on whichever screen AppKit thinks the
+    /// window belongs to, which for a window that has never been on screen is
+    /// not necessarily the one the user is looking at. On a machine with more
+    /// than one display that put the settings window on a second screen,
+    /// off to the side of the one the pointer was on — a window that looks as
+    /// though it never opened at all.
+    private static func centerOnActiveScreen(_ window: NSWindow) {
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
+        guard let screen else { return }
+        let visible = screen.visibleFrame
+        let size = window.frame.size
+        window.setFrameOrigin(NSPoint(x: visible.midX - size.width / 2,
+                                      y: visible.midY - size.height / 2))
     }
 
     /// Opened with nothing being typed in. AppKit hands a window that becomes
@@ -152,10 +153,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         fieldFrame.insetBy(dx: -4, dy: -4).contains(point)
     }
 
-    func windowWillClose(_ notification: Notification) {
-        NSApp.setActivationPolicy(preferences.appPresence.activationPolicy)
-    }
-
     /// Sit the traffic lights in the middle of the panel's header band.
     ///
     /// Their default place is a title bar's worth from the top, which on a
@@ -193,26 +190,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         layoutTrafficLights(in: window)
     }
 
-    /// Put the window away if it is already in front, otherwise bring it up.
-    ///
-    /// Only the notch's own gear calls this. A menu item reading "Settings…"
-    /// and the first-launch introduction both `show()` instead, because a
-    /// command that names a destination should go there rather than toggle.
-    ///
-    /// The condition is *key*, not merely visible. Clicking the gear while the
-    /// window is open but behind something else should fetch it forward — the
-    /// intent there is plainly "show me that", and closing it would be the one
-    /// thing the click could not have meant.
-    func toggle() {
-        if let window, window.isVisible, window.isKeyWindow {
-            // `isReleasedWhenClosed` is false, so this hides it and keeps the
-            // window itself for the next `show()`.
-            window.close()
-            return
-        }
-        show()
-    }
-
     func show() {
         if let window {
             // Re-centered every time, not only at creation: a window is
@@ -221,27 +198,30 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             // reconfigured or disconnected since — every later click would
             // silently bring forward a window that isn't anywhere visible.
             if !NSScreen.screens.contains(where: { $0.frame.intersects(window.frame) }) {
-                window.center()
+                Self.centerOnActiveScreen(window)
             }
             surface(window)
             return
         }
 
-        let window = NSWindow(
+        let window = SettingsPanel(
             contentRect: NSRect(x: 0, y: 0,
                                 width: SettingsView.width, height: SettingsView.height),
-            // `fullSizeContentView` runs the sidebar flush up under the traffic
-            // lights, with no separate title strip above it. This reserved a
-            // tall blank band once before, but that band was
-            // `NavigationSplitView`'s own toolbar — the sidebar is a plain
-            // `HStack` now, so there is no toolbar left to reserve for.
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            // `fullSizeContentView` runs the content flush up under the traffic
+            // lights, with no separate title strip above it, and
+            // `nonactivatingPanel` is what keeps the app's own menus out of
+            // the screen's menu bar while these are open.
+            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        // Kept for the Window menu and Mission Control; hidden from the bar
-        // itself, where the sidebar already names what you are looking at.
-        window.title = L10n.t("Codenotch Settings")
+        // A floating panel sits above the other applications' windows, which
+        // is where a window you opened from the menu bar belongs.
+        window.isFloatingPanel = true
+        window.level = .floating
+        // Kept for Mission Control and for anything that asks the window what
+        // it is; the bar itself says the same thing.
+        window.title = L10n.t("Leftover Settings")
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         // A floating rounded panel rather than a square window. The rounded
@@ -251,9 +231,10 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         // instead of showing black wedges outside the curve.
         window.isOpaque = false
         window.backgroundColor = .clear
-        // The panel is always drawn dark (see `SettingsView.body`); AppKit's
-        // own controls inside it — pickers, switches, menus — follow suit.
-        window.appearance = NSAppearance(named: .darkAqua)
+        // The panel follows the Mac's Appearance rather than insisting on the
+        // dark look the notch uses: AppKit's own controls inside it — pickers,
+        // switches, menus — follow the window, and the window follows the
+        // system.
         window.hasShadow = true
         window.delegate = self
         watchForClicksAway(in: window)
@@ -261,23 +242,15 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.initialFirstResponder = nil
         window.contentView = NSHostingView(
             rootView: SettingsView(preferences: preferences,
-                                   providers: providers, phoneLinkPairing: phoneLinkPairing, phoneLinkRegistry: phoneLinkRegistry, phoneLinkServerStatus: phoneLinkServerStatus,
+                                   providers: providers,
                                    signOut: signOut,
                                    signIn: signIn,
                                    switchAccount: switchAccount,
                                    retry: retry,
-                                   resetPosition: resetPosition,
-                                   quit: quit,
-                                   updater: updater,
-                                   ollamaRelay: ollamaRelay, lmstudioMetrics: lmstudioMetrics,
-                                   omlxMetrics: omlxMetrics,
                                    usageStore: usageStore,
-                                   previewResetAlert: previewResetAlert,
-                                   previewSessionLimitAlert: previewSessionLimitAlert,
-                                   previewWeeklyLimitAlert: previewWeeklyLimitAlert,
                                    sendTestNotification: sendTestNotification)
         )
-        window.center()
+        Self.centerOnActiveScreen(window)
         window.isReleasedWhenClosed = false
         self.window = window
         layoutTrafficLights(in: window)

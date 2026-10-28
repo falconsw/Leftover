@@ -8,14 +8,6 @@ enum AntigravityFlavor: String, CaseIterable, Sendable {
     case cli = "cli"
     case acp = "acp"
 
-    var displayName: String {
-        switch self {
-        case .ide: return "Antigravity IDE"
-        case .cli: return "Antigravity CLI"
-        case .acp: return "Antigravity ACP"
-        }
-    }
-
     func brainDirectories(home: URL = URL(fileURLWithPath: NSHomeDirectory())) -> [URL] {
         let gemini = home.appendingPathComponent(".gemini")
         switch self {
@@ -175,13 +167,6 @@ struct AntigravityCredentials: Equatable {
         return newCache
     }
 
-    static func forgetCached() {
-        cache.forget()
-        flavorCachesLock.lock()
-        for c in flavorCaches.values { c.forget() }
-        flavorCachesLock.unlock()
-    }
-
     static func forgetCached(for profile: AntigravityProfile) {
         cache(for: profile).forget()
         flavorCachesLock.lock()
@@ -205,12 +190,6 @@ struct AntigravityCredentials: Equatable {
         return newPrompt
     }
 
-    /// A person asked macOS for this login again: the next read may show the
-    /// dialogue. `forgetCached` grants nothing, because it is not only a click.
-    static func askAgain() {
-        askAgain(for: .default())
-    }
-
     static func askAgain(for profile: AntigravityProfile) {
         prompt(for: profile.id).grant()
         cache(for: profile).forget()
@@ -222,15 +201,8 @@ struct AntigravityCredentials: Equatable {
     /// Stands in for the keychain in tests, which have none to read.
     nonisolated(unsafe) static var readKeychainForTesting: ((_ interactive: Bool) -> (OSStatus, Data?))?
 
-    /// Whatever a previous fetch already read, without asking macOS again.
-    static var held: AntigravityCredentials? { cache.held }
-
     static func held(for profile: AntigravityProfile) -> AntigravityCredentials? {
         cache(for: profile).held
-    }
-
-    static func held(for flavor: AntigravityFlavor, profile: AntigravityProfile = .default()) -> AntigravityCredentials? {
-        cache(for: flavor, profile: profile).held
     }
 
     static func updateHeld(_ credentials: AntigravityCredentials, for profile: AntigravityProfile = .default()) {
@@ -281,10 +253,6 @@ struct AntigravityCredentials: Equatable {
     /// Claude Code does. Decoding it is not optional: without stripping the
     /// prefix the value is not JSON at all.
     private static let goKeyringPrefix = "go-keyring-base64:"
-
-    static func load() throws -> AntigravityCredentials {
-        try load(for: .default())
-    }
 
     static func load(for profile: AntigravityProfile) throws -> AntigravityCredentials {
         if profile.slug == nil {
@@ -568,10 +536,6 @@ struct AntigravityCredentials: Equatable {
 
         Log.usage.error("antigravity credentials read failed for \(profile.id, privacy: .public)")
         throw UsageProviderError.needsAuth
-    }
-
-    static func read() throws -> AntigravityCredentials {
-        try read(for: .default())
     }
 
     /// Refreshes an expired or refresh-only credential using Google's OAuth token endpoint.

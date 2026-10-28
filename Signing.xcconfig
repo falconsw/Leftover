@@ -1,0 +1,11 @@
+// Ad-hoc by default, so anyone can build and run Leftover on their own Mac.
+//
+// To sign with a Developer ID, copy Local.xcconfig.example to Local.xcconfig
+// (untracked) and fill in your team. Worth doing for day-to-day work too: the
+// app reads Claude Code's OAuth token out of the login keychain, whose ACL
+// remembers *which signed binary* was allowed. An ad-hoc build gets a new
+// identity on every rebuild, so "Always Allow" is forgotten each time.
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

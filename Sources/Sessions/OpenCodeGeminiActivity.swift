@@ -72,7 +72,7 @@ enum OpenCodeGeminiActivity {
             out.append(AgentSession(
                 id: "gemini-api.opencode.\(root)",
                 name: "OpenCode",
-                detail: "Working in \(detail)",
+                detail: L10n.t("Working in \(detail)"),
                 state: .busy,
                 waitingFor: nil,
                 since: Date(timeIntervalSince1970: created / 1000)

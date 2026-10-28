@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// One CLI login as the cost layer sees it: a Codenotch profile (Claude or
+/// One CLI login as the cost layer sees it: a Leftover profile (Claude or
 /// Codex, default or `~/.claude-<slug>`) plus how it is paid. Billing choices,
 /// the detected plan and the credit cap persist in accounts.json.
 struct CostAccount: Identifiable, Equatable {
@@ -11,7 +11,7 @@ struct CostAccount: Identifiable, Equatable {
         var title: String { self == .subscription ? L10n.t("Monthly plan") : L10n.t("API key (per token)") }
     }
 
-    let id: String                 // the provider id Codenotch uses ("claude", "claude-braspine", "codex", …)
+    let id: String                 // the provider id Leftover uses ("claude", "claude-braspine", "codex", …)
     let provider: String           // "claude" | "codex"
     let name: String               // "Claude (work)": the profile's own name
     let configDirectory: URL
@@ -20,10 +20,6 @@ struct CostAccount: Identifiable, Equatable {
     var planTier: String?
     var planDetectedAt: Date?
     var creditLimit: Double?
-
-    var isDefault: Bool { !id.contains("-") }
-
-    @MainActor var planName: String? { planTier.map { PlanCatalog.shared.name(for: $0) } }
 
     /// Monthly price in the Mac's currency: the override, else the catalog.
     @MainActor func monthlyLocal(rate: Double) -> Double {
@@ -59,7 +55,7 @@ final class CostAccountStore: ObservableObject {
 
     static let fileURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Codenotch/costs/accounts.json")
+        return base.appendingPathComponent("Leftover/costs/accounts.json")
     }()
 
     private init() {
@@ -68,7 +64,7 @@ final class CostAccountStore: ObservableObject {
         rediscover()
     }
 
-    /// Profiles come from Codenotch's own discovery, so an account added there
+    /// Profiles come from Leftover's own discovery, so an account added there
     /// (a new `~/.claude-<slug>`) shows up here without a second list.
     func rediscover() {
         var list: [CostAccount] = []
@@ -94,7 +90,6 @@ final class CostAccountStore: ObservableObject {
     }
 
     func account(_ id: String) -> CostAccount? { accounts.first { $0.id == id } }
-    func accounts(for provider: String) -> [CostAccount] { accounts.filter { $0.provider == provider } }
 
     private func mutate(_ id: String, _ change: (inout CostAccount) -> Void) {
         guard let i = accounts.firstIndex(where: { $0.id == id }) else { return }
@@ -105,8 +100,6 @@ final class CostAccountStore: ObservableObject {
         save()
     }
 
-    func setBilling(_ id: String, _ b: CostAccount.Billing) { mutate(id) { $0.billing = b } }
-    func setMonthlyPrice(_ id: String, _ p: Double) { mutate(id) { $0.monthlyPrice = p } }
     func setCreditLimit(_ id: String, _ l: Double) { mutate(id) { if $0.creditLimit != l { $0.creditLimit = l } } }
     func setPlan(_ id: String, tier: String) {
         mutate(id) { a in

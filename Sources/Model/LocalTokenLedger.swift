@@ -58,8 +58,6 @@ struct LocalTokenLedger: Equatable {
             acceptedDraftTokens += prediction.acceptedDraftTokens ?? 0
         }
 
-        var totalTokens: Int { inputTokens + outputTokens }
-
         /// The share of generated tokens spent thinking rather than answering.
         /// Nil until something was generated — a share of nothing is not 0%.
         var reasoningShare: Double? {
@@ -130,7 +128,6 @@ struct LocalTokenLedger: Equatable {
     static let retentionDays = 60
 
     var isEmpty: Bool { days.isEmpty }
-    var instances: [String] { Array(days.keys).sorted() }
 
     /// `key` names the entry — a notch cell id, so the tooltip can look its
     /// own model up — and defaults to the instance the log named.
@@ -160,19 +157,6 @@ struct LocalTokenLedger: Equatable {
                        last: last[instance])
     }
 
-    /// Everything logged today across every instance, for Settings.
-    func totalsToday(now: Date) -> Totals {
-        let day = calendar.startOfDay(for: now)
-        return days.values.reduce(into: Totals()) { sum, perDay in
-            guard let totals = perDay[day] else { return }
-            sum.requests += totals.requests
-            sum.inputTokens += totals.inputTokens
-            sum.outputTokens += totals.outputTokens
-            sum.reasoningTokens += totals.reasoningTokens
-            sum.draftTokens += totals.draftTokens
-            sum.acceptedDraftTokens += totals.acceptedDraftTokens
-        }
-    }
 }
 
 /// What a local model instance is doing right now, as its runtime reports it.

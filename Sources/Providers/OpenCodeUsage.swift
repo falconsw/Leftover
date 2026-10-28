@@ -38,7 +38,7 @@ enum OpenCodeUsage {
         ]
     }
 
-    static func windows(fromJSON json: String, now: Date = Date()) throws -> [LimitWindow] {
+    static func windows(fromJSON json: String) throws -> [LimitWindow] {
         guard let data = json.data(using: .utf8),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let usage = root["usage"] as? [String: Any]

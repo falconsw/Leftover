@@ -15,8 +15,6 @@ struct UsagePace {
     /// of burn (in deficit). Nil pace has no burn figure.
     var burnPoints: Double { -percentagePoints }
 
-    var isBurnUrgent: Bool { burnPoints > 0 }
-
     var summary: String {
         let magnitude = abs(percentagePoints)
         let rounded = (magnitude * 10).rounded() / 10

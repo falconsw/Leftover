@@ -22,18 +22,18 @@ enum RingOrder: String, CaseIterable, Identifiable {
         switch self {
         case .manual:    return L10n.t("Manual")
         case .remaining: return L10n.t("Remaining")
-        case .deficit:   return L10n.t("Burn deficit")
+        case .deficit:   return L10n.t("Expiring first")
         }
     }
 
     var explanation: String {
         switch self {
         case .manual:
-            return L10n.t("The notch draws rings in the order below. Drag one by its handle to move it.")
+            return L10n.t("In the order of the list below.")
         case .remaining:
-            return L10n.t("Most remaining first, by the window that leads each ring; the menu bar sorts its readings by what is left of the five-hour window it prints. A high number that cannot be spent yet sinks below usable accounts but stays above empty ones.")
+            return L10n.t("The accounts with the most left come first. One that cannot be used until a reset goes below the usable ones.")
         case .deficit:
-            return L10n.t("Quota expiring soonest first: remaining quota minus remaining time. 70% left with 23h of a week left (about 56 to burn) outranks 100% with 6 days left (about 14 to burn).")
+            return L10n.t("Quota that would go unused before its reset comes first. 70% left with 23 hours of the week to go comes before 100% left with 6 days to go.")
         }
     }
 }

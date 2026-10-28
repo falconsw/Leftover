@@ -12,7 +12,7 @@ enum ProviderOrder {
     static func cells(from snapshots: [ProviderSnapshot],
                       keeping previous: [ProviderSnapshot]) -> [ProviderSnapshot] {
         snapshots.flatMap { snapshot in
-            let cells = snapshot.notchSnapshots
+            let cells = snapshot.panelSnapshots
             return snapshot.kind == .localRuntime
                 ? arrange(cells, by: previous.map(\.id), id: \.id) : cells
         }
@@ -84,17 +84,6 @@ enum ProviderOrder {
     /// unmeasurable trailing group, keep the arrangement dragging made.
     static func byRemainingUsage(_ snapshots: [ProviderSnapshot]) -> [ProviderSnapshot] {
         sorted(snapshots) { orderKey(for: $0, leading: $0.headline) }
-    }
-
-    /// The same rule read off the five-hour window, for the menu bar.
-    ///
-    /// The bar prints that window whatever the notch's rings are leading
-    /// with, and it has four places with the countdowns in the first of them
-    /// — so here the order decides what is said about an account and whether
-    /// it is said at all. Sorting it by a figure it is not showing would be
-    /// the same fault as printing one.
-    static func byRemainingFiveHour(_ snapshots: [ProviderSnapshot]) -> [ProviderSnapshot] {
-        sorted(snapshots) { orderKey(for: $0, leading: $0.fiveHourWindow) }
     }
 
     /// Tier, then remaining within it, then arrival — which is the manual

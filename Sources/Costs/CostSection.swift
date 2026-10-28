@@ -12,13 +12,6 @@ struct CostSection: View {
 
     static let maxRows = 5
 
-    /// How many lines the card must reserve — read by the height math, so it
-    /// has to agree with what `body` draws.
-    @MainActor static func rowCount(for snapshot: ProviderSnapshot) -> Int {
-        guard let m = CostModels.model(for: snapshot.id), m.state == .ready else { return 0 }
-        return min(m.rows.count, maxRows)
-    }
-
     private var shown: [ProjectCost] { Array(model.rows.prefix(min(rows, Self.maxRows))) }
 
     /// The ranges the card offers: the day, the allowance window (a week, or

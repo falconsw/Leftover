@@ -28,10 +28,10 @@ enum LMStudioWire {
             identifier = parts.clientIdentifier
             passkey = parts.clientPasskey
         } else if let token {
-            identifier = "codenotch"
+            identifier = "leftover"
             passkey = token
         } else {
-            identifier = "codenotch-" + random().prefix(8)
+            identifier = "leftover-" + random().prefix(8)
             passkey = random()
         }
         return ["authVersion": authVersion, "clientIdentifier": identifier, "clientPasskey": passkey]
@@ -107,11 +107,6 @@ struct LMStudioProcessingState: Equatable {
 
     let status: Status
     let queued: Int
-
-    init(status: Status, queued: Int) {
-        self.status = status
-        self.queued = queued
-    }
 
     init?(_ result: Any) {
         guard let object = result as? [String: Any], let status = object["status"] as? String else { return nil }

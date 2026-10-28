@@ -24,25 +24,6 @@ enum WeeklyRing: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
-        switch self {
-        case .off:     return L10n.t("Off")
-        case .inside:  return L10n.t("Inside")
-        case .outside: return L10n.t("Outside")
-        }
-    }
-
-    var explanation: String {
-        switch self {
-        case .off:
-            return L10n.t("One ring per provider, showing the headline limit. The weekly allowance stays in the hover card.")
-        case .inside:
-            return L10n.t("A thinner ring for the weekly limit, drawn inside the main one. It shares the gap with the working indicator.")
-        case .outside:
-            return L10n.t("A thinner ring for the weekly limit, drawn around the main one, in the margin between the ring and the notch edge.")
-        }
-    }
-
     /// Where the arc's centre-line sits, measured from the ring's centre. Nil
     /// when there is no second ring to place.
     var radius: CGFloat? {

@@ -231,15 +231,6 @@ struct LMStudioServerLog {
                       message: String(decoding: split.message, as: UTF8.self))
     }
 
-    /// `[2026-09-10 00:33:54][INFO][qwen3.8-27b] Running …` → its parts.
-    /// Lines from the server itself (`[LM STUDIO SERVER]`, `[LMSAuthenticator]`)
-    /// carry a tag too; they are filtered by what they say, not who says it.
-    static func header(of line: String, formatter: DateFormatter) -> Header? {
-        let data = Data(line.utf8)
-        guard isHeaderShaped(data), let split = split(data) else { return nil }
-        return header(split, formatter: formatter)
-    }
-
     // MARK: - Blocks
 
     private static func prediction(_ capture: Capture) -> LocalPrediction? {

@@ -6,21 +6,6 @@ enum ResetTimeFormat: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
-        switch self {
-        case .automatic: return L10n.t("Reset date")
-        case .remaining: return L10n.t("Time remaining")
-        }
-    }
-
-    var explanation: String {
-        switch self {
-        case .automatic:
-            return L10n.t("Minutes under an hour; otherwise the reset date and time.")
-        case .remaining:
-            return L10n.t("Time until usage resets, such as 3h 20m (20:30), with the reset time itself where there is room for it.")
-        }
-    }
 }
 
 /// "Resets in 42 sec" inside the last minute, "Resets in 51 min" under an hour,
@@ -133,50 +118,6 @@ enum ResetCopy {
             formatter.setLocalizedDateFormatFromTemplate("E j:mm")
         }
         return formatter.string(from: resetsAt)
-    }
-
-    /// The time left before a reset, as short as the menu bar needs it: "2h 05m",
-    /// "47m", "09s". Nil once the reset has passed — a window that is over has
-    /// no time left to show, and never a negative one.
-    ///
-    /// Truncated where `text` rounds. This one is read against a clock, so it
-    /// may never claim more time than there is: "09s" is always at least nine
-    /// seconds, and "1h 00m" is gone the moment the hour is.
-    static func countdown(to resetsAt: Date, now: Date = Date(),
-                          locale: Locale = L10n.locale) -> String? {
-        let seconds = resetsAt.timeIntervalSince(now)
-        guard seconds > 0 else { return nil }
-        let minutes = Int(seconds / 60)
-        // The last minute counts in seconds. "<1m" was true for fifty-nine of
-        // them and said nothing about which — and it is the minute somebody is
-        // actually watching the bar for. Truncated, like the minutes below and
-        // for the reason in the doc comment: "09s" is always at least nine
-        // seconds, never ten. Two digits, so the figure does not change width
-        // as it falls.
-        if minutes < 1 {
-            let padded = String(format: "%02d", Int(seconds))
-            return L10n.t("\(padded)s", locale: locale)
-        }
-        if minutes < 60 { return L10n.t("\(minutes)m", locale: locale) }
-        // Two digits, so "2h 05m" is as wide as "2h 50m" and whatever sits
-        // beside it in the menu bar does not shuffle as the minutes tick over.
-        let padded = String(format: "%02d", minutes % 60)
-        return L10n.t("\(minutes / 60)h \(padded)m", locale: locale)
-    }
-
-    /// When `countdown` next reads differently — the next whole second of time
-    /// left inside the last minute, the next whole minute above it, or the reset
-    /// itself. Nil once it has passed.
-    ///
-    /// The menu bar wakes itself on this and nothing else, so it is the only
-    /// thing deciding how often the item is redrawn: once a minute for four
-    /// hours and fifty-nine minutes of a five-hour window, then once a second
-    /// for the last sixty.
-    static func nextCountdownChange(to resetsAt: Date, now: Date = Date()) -> Date? {
-        let seconds = resetsAt.timeIntervalSince(now)
-        guard seconds > 0 else { return nil }
-        let step: TimeInterval = seconds <= 60 ? 1 : 60
-        return resetsAt.addingTimeInterval(-(seconds / step).rounded(.down) * step)
     }
 
     /// A formatter that renders in the given calendar's own zone.

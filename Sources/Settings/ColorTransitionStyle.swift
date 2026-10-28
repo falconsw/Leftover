@@ -15,21 +15,6 @@ enum ColorTransitionStyle: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
-        switch self {
-        case .hardStep: return L10n.t("Hard step")
-        case .ramp: return L10n.t("Colour ramp")
-        }
-    }
-
-    var explanation: String {
-        switch self {
-        case .hardStep:
-            return L10n.t("Ample, watch and critical each stay one flat colour, jumping between them at the limits below.")
-        case .ramp:
-            return L10n.t("The colour blends continuously from ample to critical across the full range, turning yellow at the watch limit below.")
-        }
-    }
 }
 
 private struct ColorTransitionStyleKey: EnvironmentKey {

@@ -17,24 +17,11 @@ enum AccentColorChoice: String, CaseIterable, Identifiable {
     case indigo = "6c5ce7"
     case purple = "b026ff"
     case offWhite = "f7f6f5"
+    /// The green of the app's own mark, so the interface and the icon are
+    /// the same colour.
+    case logo = "5eebb8"
 
     var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .system:   return L10n.t("Device accent color")
-        case .pink:     return "#FF33E1"
-        case .red:      return "#EB4236"
-        case .orange:   return "#EB8436"
-        case .yellow:   return "#FFD400"
-        case .green:    return "#00FF88"
-        case .teal:     return "#00E5CC"
-        case .blue:     return "#36A8EB"
-        case .indigo:   return "#6C5CE7"
-        case .purple:   return "#B026FF"
-        case .offWhite: return "#F7F6F5"
-        }
-    }
 
     var color: Color {
         switch self {
@@ -49,17 +36,18 @@ enum AccentColorChoice: String, CaseIterable, Identifiable {
         case .indigo:   return Color(hex: 0x6C5CE7)
         case .purple:   return Color(hex: 0xB026FF)
         case .offWhite: return Color(hex: 0xF7F6F5)
+        case .logo:     return Palette.ample
         }
     }
 }
 
-private struct CodenotchAccentColorKey: EnvironmentKey {
-    static let defaultValue = Color(nsColor: .controlAccentColor)
+private struct LeftoverAccentColorKey: EnvironmentKey {
+    static let defaultValue = Palette.ample
 }
 
 extension EnvironmentValues {
-    var codenotchAccentColor: Color {
-        get { self[CodenotchAccentColorKey.self] }
-        set { self[CodenotchAccentColorKey.self] = newValue }
+    var leftoverAccentColor: Color {
+        get { self[LeftoverAccentColorKey.self] }
+        set { self[LeftoverAccentColorKey.self] = newValue }
     }
 }

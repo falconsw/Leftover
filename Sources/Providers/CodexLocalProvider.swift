@@ -78,7 +78,7 @@ actor CodexLocalProvider: UsageProvider {
 
         let windows = try CodexUsage.windows(
             from: data,
-            includeExtras: Preferences.storedShowCodexExtraLimits()
+            includeExtras: true
         )
 
         // The profile page's token statistics are the source for the chart and
@@ -175,20 +175,6 @@ actor CodexLocalProvider: UsageProvider {
 
 /// Shared access to Codex's local state.
 enum CodexStore {
-    static var stateURL: URL {
-        CodexProfile.default().stateURL
-    }
-
-    /// The desktop app's own thread catalogue.
-    ///
-    /// Codex's *rollouts* are written by the CLI and by the VS Code extension.
-    /// The desktop app — ChatGPT.app, which is what most people mean by "Codex"
-    /// now — writes none of them; it keeps its threads here instead, with
-    /// `source_kind = 'chatgpt'`. Watching only the rollouts meant the notch
-    /// could never see the desktop app working at all.
-    static var desktopStoreURL: URL {
-        CodexProfile.default().desktopStoreURL
-    }
 
     /// The most recently touched desktop thread: when, what it is called, and
     /// its id — which the desktop app shares with the `threads` table when the
@@ -212,20 +198,6 @@ enum CodexStore {
         // milliseconds the `threads` table next door uses.
         let title = row[1].isEmpty ? "Codex" : row[1]
         return (title, Date(timeIntervalSince1970: seconds), row[2])
-    }
-
-    /// The rollout of the most recently touched thread.
-    static func newestRollout(in store: URL) -> URL? {
-        guard let db = SQLiteStore.open(store) else { return nil }
-        defer { sqlite3_close(db) }
-
-        let paths = SQLiteStore.rows(
-            in: db,
-            sql: "SELECT rollout_path FROM threads WHERE archived = 0 ORDER BY updated_at_ms DESC LIMIT 8"
-        )
-        return paths
-            .map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
-            .first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     /// The most recently touched threads, with what it takes to name them —
@@ -514,8 +486,6 @@ final class CodexStoreCache {
         let size: UInt64
     }
 
-    private var rolloutStamp: Stamp?
-    private var rollout: URL?
     private var desktopStamp: Stamp?
     private var desktop: (title: String, updatedAt: Date, threadID: String)?
     private var threadsStamp: Stamp?
@@ -523,21 +493,6 @@ final class CodexStoreCache {
     /// Each rollout's last answer from `CodexRolloutActivity.state`, by path,
     /// with the stamp it was read at.
     private var rolloutStates: [String: (stamp: Stamp, state: CodexRolloutActivity.State?)] = [:]
-
-    /// `CodexStore.newestRollout`, or the last answer when the store has not
-    /// changed. A cached path whose file has since gone away is asked for
-    /// again — the next row down may still exist.
-    func newestRollout(in store: URL) -> URL? {
-        let stamp = Self.stamp(of: store)
-        if stamp == rolloutStamp, let rollout,
-           FileManager.default.fileExists(atPath: rollout.path) {
-            return rollout
-        }
-        let found = CodexStore.newestRollout(in: store)
-        rolloutStamp = stamp
-        rollout = found
-        return found
-    }
 
     /// `CodexStore.newestDesktopThread`, or the last answer when the
     /// catalogue has not changed.

@@ -80,7 +80,7 @@ struct ClaudeUsageCLI: Sendable {
                                                            in: .userDomainMask)[0]
     ) -> URL {
         applicationSupport
-            .appendingPathComponent("Codenotch", isDirectory: true)
+            .appendingPathComponent("Leftover", isDirectory: true)
             .appendingPathComponent("usage-scratch", isDirectory: true)
     }
 
@@ -170,20 +170,6 @@ struct ClaudeUsageCLI: Sendable {
     }
 
     // MARK: - Asking it
-
-    /// Runs `/usage` for one profile and returns what it reported.
-    ///
-    /// Runs off the cooperative pool: reading a pipe to exhaustion blocks the
-    /// thread it is on, and the caller is an actor whose other work — the
-    /// token path this falls back to — would be stuck behind it.
-    func read(profile: ClaudeProfile, now: Date = Date()) async throws -> [LimitWindow] {
-        let text = try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async {
-                continuation.resume(with: Result { try self.output(profile) })
-            }
-        }
-        return try Self.parse(text, now: now)
-    }
 
     /// The named tier `/usage` prints above the windows, copied as printed.
     static func plan(in text: String) -> String? {

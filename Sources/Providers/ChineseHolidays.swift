@@ -24,10 +24,6 @@ struct ChineseHolidayCalendar: Equatable, Sendable {
         offDays.contains(Self.dayKey(date))
     }
 
-    func covers(_ date: Date) -> Bool {
-        years.contains(Self.beijingCalendar.component(.year, from: date))
-    }
-
     /// One holiday-cn year file merged over this calendar, replacing whatever
     /// was known about that year. Nil when the file is not a usable year.
     func merging(holidayCNJSON data: Data) -> ChineseHolidayCalendar? {
@@ -81,7 +77,7 @@ final class ChineseHolidays: ObservableObject {
 
     static let cacheDirectory: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Codenotch/holidays-cn", isDirectory: true)
+        return base.appendingPathComponent("Leftover/holidays-cn", isDirectory: true)
     }()
 
     /// Every holiday-cn file shipped in Resources, named holiday-cn-<year>.json.

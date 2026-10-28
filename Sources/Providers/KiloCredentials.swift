@@ -32,7 +32,7 @@ enum KiloCredentials {
             .appendingPathComponent(".local/share/kilo/auth.json")
     }
 
-    static func load(from url: URL = authURL, now: Date = Date()) -> Credential? {
+    static func load(from url: URL = authURL) -> Credential? {
         guard let data = try? Data(contentsOf: url),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let entry = root["kilo"] as? [String: Any]

@@ -94,30 +94,6 @@ enum Percent {
         return small(value)
     }
 
-    /// One percentage with no decimals, for the menu bar, where a tenth is
-    /// noise at a glance. Rounding never lands on the two figures that would
-    /// say something else happened: "0" when a little has been used, or "100"
-    /// while there is still room.
-    static func whole(for fraction: Double) -> String {
-        let value = max(0, fraction * 100)
-        if value > 0, value < 1 { return "<1" }
-        if value > 99, value < 100 { return "99" }
-        return "\(Int(value.rounded()))"
-    }
-
-    /// The same figure from the other end, for a menu bar set to read what is
-    /// left. Derived from the *rounded* used half, the rule `halves` follows,
-    /// so the bar and the tooltip under it never disagree by a point — and
-    /// with `whole`'s two guards answered from this end: a window barely
-    /// touched says ">99" rather than a full hundred, and one with a little
-    /// left says "<1" rather than "0".
-    static func wholeRemaining(for fraction: Double) -> String {
-        let value = max(0, fraction * 100)
-        if value > 0, value < 1 { return ">99" }
-        if value > 99, value < 100 { return "<1" }
-        return "\(max(0, 100 - Int(value.rounded())))"
-    }
-
     /// The share of the allowance the meters draw: spent by default, what is
     /// left when the notch is set that way. The one rule behind the ring's
     /// sweep, the card's bars, and every flipped figure — callers clamp to
@@ -362,11 +338,10 @@ struct ProviderSnapshot: Identifiable, Equatable {
     /// A model cell has its own display preference, but polling belongs to the
     /// runtime that supplied it.
     var sourceProviderID: String?
-    var customIconFilename: String?
 
     var providerID: String { sourceProviderID ?? id }
 
-    var notchSnapshots: [ProviderSnapshot] {
+    var panelSnapshots: [ProviderSnapshot] {
         guard kind == .localRuntime, localModel == nil else { return [self] }
         return (localRuntime?.models ?? []).map { model in
             ProviderSnapshot(id: "\(id):model:\(model.id)", displayName: displayName,
@@ -405,9 +380,6 @@ struct ProviderSnapshot: Identifiable, Equatable {
     /// breakdown and daily token/cost series.
     var usageDetail: ProviderUsageDetail? = nil
 
-    /// Locally sampled cumulative token usage for a custom endpoint.
-    var customUsageHistory: [CustomEndpointUsageDay]? = nil
-
     /// The number on the cell: the provider's declared primary window — for
     /// Claude, the current session.
     ///
@@ -425,20 +397,6 @@ struct ProviderSnapshot: Identifiable, Equatable {
     }
 
     var usedFraction: Double? { headline?.usedFraction }
-    var bandOverride: UsageBand? { headline?.bandOverride }
-
-    /// The five-hour window, where the provider has one: the headline when it
-    /// is that window, otherwise the account's own.
-    ///
-    /// Found by length rather than taken from the headline, because the
-    /// headline is not always it — the daily pace ring takes Claude's. Never
-    /// a grouped window, though: a group is one model's or one feature's
-    /// allowance, Codex's Spark for one, kept off the ring for the same reason
-    /// it cannot stand for the account here.
-    var fiveHourWindow: LimitWindow? {
-        if let headline, headline.isFiveHour { return headline }
-        return windows.first { $0.isFiveHour && $0.group == nil }
-    }
 
     /// The provider-declared weekly allowance, whether or not another surface
     /// is already using it as its headline.
@@ -511,53 +469,9 @@ struct ProviderSnapshot: Identifiable, Equatable {
         return snapshot
     }
 
-    /// What the cell prints under the ring: the used percentage, unless the
-    /// notch is set to show what is left instead.
-    var headlineText: String { headlineText(showingRemaining: false) }
-
-    /// The same figure from the other end. Only the percentage line flips —
-    /// local runtimes report memory and speed rather than a quota, and an
-    /// explicit used-text or count line has no remaining figure to show.
-    func headlineText(showingRemaining: Bool) -> String {
-        if kind == .localRuntime {
-            return showsLocalPerformance ? (localPerformance?.headlineText ?? "— tok/s")
-                : (localModel?.memoryText ?? "—")
-        }
-        if headline?.prefersUsedText == true, let usedText = headline?.usedText { return usedText }
-        if let usedFraction {
-            // The tooltip's own left half, not one minus the fraction: it
-            // derives from the *rounded* used figure, so the notch and the
-            // card never disagree by a point. See `Percent.halves`.
-            if showingRemaining { return Percent.halves(for: usedFraction).left + "%" }
-            return Percent.text(for: usedFraction) + "%"
-        }
-        if let remaining = headline?.remaining { return LimitWindow.compact(remaining) }
-        if let usedText = headline?.usedText { return usedText }
-        if let used = headline?.used { return LimitWindow.compact(used) }
-        return "—"
-    }
-
     /// An empty local inventory still confirms server connectivity; an absent
     /// reading must not be shown as measured zero usage.
     var hasReading: Bool { localRuntime != nil || localModel != nil || !windows.isEmpty }
-
-    /// Group headings occupy space in both the card and its hover region.
-    var windowGroupCount: Int { Set(windows.compactMap(\.group)).count }
-
-    /// How many windows are count-only (no fraction, no bar) — they render as
-    /// single-line rows and take less vertical space than full bar rows.
-    var compactRowCount: Int {
-        windows.filter { $0.usedFraction == nil && ($0.used != nil || $0.detail != nil) }.count
-    }
-
-    /// A ring can only be drawn when the provider said what the limit was. A
-    /// local model has no limit; its arc is how full the context was.
-    var ringFraction: Double? { kind == .localRuntime ? localContextFraction : usedFraction }
-
-    /// Rows the tooltip adds for a logged runtime: context used, tokens and
-    /// requests today, reasoning share, draft acceptance. Counted here so the
-    /// card's budget and its contents cannot disagree.
-    var localLedgerRowCount: Int { localLedger == nil ? 0 : 5 }
 
     /// Signing in means something different per provider, so the prompt has to
     /// say which door to knock on.
@@ -565,11 +479,6 @@ struct ProviderSnapshot: Identifiable, Equatable {
         let locale = L10n.locale
         switch id {
         case "claude":     return L10n.t("Sign in to Claude Code to read your usage", locale: locale)
-        // A remote login is signed in where it lives, over ssh — and only the
-        // stored host knows where that is.
-        case _ where RemoteHost.isRemoteClaude(providerID: id):
-            let destination = RemoteHost.destination(forProviderID: id) ?? "that server"
-            return L10n.t("Sign in to Claude Code on \(destination) to read this account's usage", locale: locale)
         // A profile is signed in by running Claude Code against its directory,
         // which is worth saying: plain `claude` signs the default one in.
         case _ where ClaudeProfile.isClaude(providerID: id):
@@ -581,9 +490,6 @@ struct ProviderSnapshot: Identifiable, Equatable {
         case "deepseek":   return L10n.t("Sign in to DeepSeek Platform to read your usage", locale: locale)
         case "qoder": return L10n.t("Sign in to Qoder to read your credit usage", locale: locale)
         case "qianwenai":  return L10n.t("Sign in to QianwenAI to read your Token Plan usage", locale: locale)
-        case _ where RemoteHost.isRemoteCodex(providerID: id):
-            let destination = RemoteHost.destination(forProviderID: id) ?? "that server"
-            return L10n.t("Sign in to Codex on \(destination) to read this account's usage", locale: locale)
         case _ where CodexProfile.slug(fromProviderID: id) != nil:
             let slug = CodexProfile.slug(fromProviderID: id)!
             return L10n.t("Sign in to Codex in ~/.codex-\(slug) to read your usage", locale: locale)
@@ -621,7 +527,7 @@ struct ProviderSnapshot: Identifiable, Equatable {
                 return localRuntime.models.isEmpty ? localRuntime.summary : nil
             }
             if case .error(let why) = status { return why }
-            return "Connecting to \(displayName)…"
+            return L10n.t("Connecting to \(displayName)…")
         }
         if hasReading { return nil }
         let locale = L10n.locale
@@ -637,7 +543,7 @@ struct ProviderSnapshot: Identifiable, Equatable {
             // Points at the one control that asks again. Clicking the ring
             // only refreshes, and a refresh never shows the dialogue — polls
             // are not allowed to.
-            return L10n.t("macOS refused Codenotch access to \(displayName)'s saved login. Use Allow access… in Settings to ask again.", locale: locale)
+            return L10n.t("macOS refused Leftover access to \(displayName)'s saved login. Use Allow access… in Settings to ask again.", locale: locale)
         case .unsupported(let why): return why
         case .error(let why): return L10n.t("Couldn't read usage — \(why)", locale: locale)
         case .stale, .ok:     return L10n.t("Waiting for the first reading…", locale: locale)

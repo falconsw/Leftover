@@ -54,14 +54,6 @@ enum OpenCodeCredentials {
     static var authURL: URL { dataDirectory.appendingPathComponent("auth.json") }
     static var databaseURL: URL { dataDirectory.appendingPathComponent("opencode.db") }
 
-    /// Is OpenCode on this machine at all? A machine that never had it shows no
-    /// cell, which is a different answer from one that has it and is signed out.
-    static func present(in directory: URL = dataDirectory) -> Bool {
-        ["auth.json", "opencode.db"].contains {
-            FileManager.default.fileExists(atPath: directory.appendingPathComponent($0).path)
-        }
-    }
-
     /// The two files above, database first. The order is the fix for OpenCode
     /// 2.x: it rotates the Go key into the database and leaves the key the
     /// pre-rotation `auth.json` holds answering 401, so a file-first order

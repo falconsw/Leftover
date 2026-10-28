@@ -69,7 +69,7 @@ protocol UsageProvider {
     ///
     /// For a borrowed credential there is nothing here to discard — the session
     /// belongs to Claude Code or Cursor, and ending it is their business, not
-    /// ours. For a session Codenotch created itself (`WebSessionProvider`) this
+    /// ours. For a session Leftover created itself (`WebSessionProvider`) this
     /// is a real logout. A requirement, not an extension member, for the reason
     /// spelled out above `account()`.
     func signOut() async
@@ -103,8 +103,6 @@ protocol UsageProvider {
     /// provider still refreshes on launch, on wake, when one of its windows
     /// rolls over, and whenever asked: refresh-all, per-cell, and Settings.
     var skipsIdleRefresh: Bool { get }
-    /// Optional custom icon image filename saved on disk.
-    var customIconFilename: String? { get }
 }
 
 extension UsageProvider {
@@ -119,8 +117,6 @@ extension UsageProvider {
     var isVisibleWhenAbsent: Bool { true }
 
     var skipsIdleRefresh: Bool { false }
-
-    var customIconFilename: String? { nil }
 }
 
 extension UsageProvider {

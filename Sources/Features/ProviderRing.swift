@@ -19,7 +19,6 @@ struct ProviderRing: View {
     /// there is no arc to draw, and inventing one would be a lie in a shape.
     let usedFraction: Double?
     let glyph: ProviderGlyph
-    var customIconFilename: String? = nil
     /// Whether the arcs sweep by what is left rather than what is spent.
     /// Only the sweep flips: the bands still judge by what is spent, so a
     /// nearly empty ring still reads red — that is what almost-out means.
@@ -51,11 +50,11 @@ struct ProviderRing: View {
     var bandOverride: UsageBand? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.codenotchReduceTransparency) private var reduceTransparency
+    @Environment(\.leftoverReduceTransparency) private var reduceTransparency
     @Environment(\.usageWatchLimit) private var watchLimit
     @Environment(\.usageCriticalLimit) private var criticalLimit
     @Environment(\.colorTransitionStyle) private var colorTransitionStyle
-    @Environment(\.codenotchAccentColor) private var accentColor
+    @Environment(\.leftoverAccentColor) private var accentColor
     @Environment(\.weeklyRingDashed) private var weeklyRingDashed
     @Environment(\.busyIndicatorStyle) private var busyIndicatorStyle
     @State private var spin: Double = 0
@@ -78,9 +77,6 @@ struct ProviderRing: View {
     static func localSweep(for contextFraction: Double?) -> CGFloat {
         guard let contextFraction else { return 1 }
         return max(NotchLayout.localArcMinimumSweep, CGFloat(min(max(contextFraction, 0), 1)))
-    }
-    private var primaryColor: Color {
-        isStale ? Palette.textSecondary : band.color(accent: accentColor)
     }
 
     /// The ring's actual stroke colour: a continuous ramp when that style is chosen, falling
@@ -240,7 +236,7 @@ struct ProviderRing: View {
                         .animation(NotchMotion.reading, value: weeklyBand)
                 }
 
-                ProviderGlyphView(glyph: glyph, customIconFilename: customIconFilename)
+                ProviderGlyphView(glyph: glyph)
                     .foregroundStyle(Palette.textPrimary)
                     // A spent limit dims its glyph so the ring reads as "waiting".
                     // Under reduce-transparency, boost opacity so it stays legible without low alpha.
@@ -287,7 +283,7 @@ private struct ActivityArc: View {
     let summary: ActivitySummary
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.codenotchReduceTransparency) private var reduceTransparency
+    @Environment(\.leftoverReduceTransparency) private var reduceTransparency
     @Environment(\.busyIndicatorStyle) private var busyIndicatorStyle
     @State private var pulsing = false
 
@@ -344,91 +340,6 @@ private struct ActivityArc: View {
                 }
             }
             .onDisappear { pulsing = false }
-    }
-}
-
-struct ProviderCell: View {
-    let snapshot: ProviderSnapshot
-    var activity: ActivitySummary?
-    var isRefreshing: Bool = false
-    var weeklyRing: WeeklyRing = .off
-    /// Whether the reading adds the weekly ring's percentage, as "30%/70%".
-    var showsWeeklyReading: Bool = false
-    /// Whether the percentage is drawn under the ring.
-    ///
-    /// Off where the cell sits in a menu-bar strip beside the hardware notch:
-    /// the strip is the menu bar's height, which one ring already fills, and a
-    /// second line would be drawn in the bezel. The reading is still a hover
-    /// away in the card.
-    var showsReading: Bool = true
-
-    /// Whether the cell reads what is left rather than what is spent: the
-    /// figure under the ring and the arcs' sweep. The bands still judge by
-    /// what is spent — colour answers how bad, sweep answers how much.
-    var showsRemaining: Bool = false
-    /// Whether a spent window shuts the rings: both arcs say shut rather
-    /// than their own window's colour. Mirrors the Appearance setting.
-    var shutRingsWhenSpent: Bool = true
-
-    private var reading: ProviderReading {
-        ProviderReading(snapshot: snapshot, weeklyRing: weeklyRing,
-                        showsWeeklyReading: showsWeeklyReading,
-                        showsRemaining: showsRemaining)
-    }
-
-    private var readingText: String { reading.text }
-
-    /// The week is spent, shutting the headline with it even where it shows
-    /// room. The ring reads this off the block the store attached — a pause
-    /// the provider reported itself is not this.
-    var isWeeklyExhausted: Bool {
-        snapshot.block?.isWeeklyExhaustion == true
-    }
-
-    var body: some View {
-        VStack(spacing: NotchLayout.ringLabelGap) {
-            ProviderRing(
-                usedFraction: snapshot.localModel == nil && snapshot.hasReading ? snapshot.ringFraction : nil,
-                glyph: snapshot.glyph,
-                customIconFilename: snapshot.customIconFilename,
-                showsRemaining: showsRemaining,
-                isStale: snapshot.status.isStale || !snapshot.hasReading,
-                isBlocked: snapshot.block != nil,
-                weeklyExhausted: isWeeklyExhausted,
-                shutRingsWhenSpent: shutRingsWhenSpent,
-                activity: activity,
-                isRefreshing: isRefreshing,
-                localPerformance: snapshot.localPerformance,
-                localContextFraction: snapshot.localContextFraction,
-                weeklyFraction: snapshot.hasReading ? snapshot.weeklyFraction : nil,
-                weeklyRing: weeklyRing,
-                bandOverride: snapshot.bandOverride
-            )
-            if showsReading { reading }
-        }
-        .frame(height: NotchLayout.cellExtent)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
-    }
-
-    /// Everything the cell says, as one sentence for VoiceOver and the tests.
-    var accessibilityText: String {
-        snapshot.localModel.map {
-            "\($0.brand.map { "\($0.displayName), " } ?? "")\($0.name), \(snapshot.displayName) local, \(snapshot.showsLocalPerformance ? (snapshot.localPerformance.map { "Last generation speed \($0.speedText), \($0.band.label)" } ?? "Speed not measured") : "Loaded"), \($0.detail)\(localActivityText)\(localLedgerText)"
-        } ?? "\(snapshot.displayName), \(readingText)"
-    }
-
-    /// What the model is doing, the way the tooltip's header says it.
-    private var localActivityText: String {
-        guard let activity, activity.state == .working else { return "" }
-        let phase = activity.sessions.first?.name ?? "Working"
-        return activity.queued > 0 ? ", \(phase), \(activity.queued) queued" : ", \(phase)"
-    }
-
-    private var localLedgerText: String {
-        guard let ledger = snapshot.localLedger else { return "" }
-        let context = snapshot.localContextFraction.map { ", Context \(Percent.text(for: $0))% full" } ?? ""
-        return "\(context), Tokens today \(ledger.tokensTodayText), \(ledger.requestsTodayText) requests"
     }
 }
 
@@ -552,105 +463,5 @@ final class SpinningArcView: NSView {
         turn.repeatCount = .infinity
         turn.isRemovedOnCompletion = false
         arc.add(turn, forKey: Self.animationKey)
-    }
-}
-
-/// **A cell's percentage**, on its own: under its ring, or — merged into the
-/// Mac's notch with a single ring — on the other side of the Mac's notch,
-/// where the notch widens with nothing else to carry.
-struct ProviderReading: View {
-    let snapshot: ProviderSnapshot
-    var weeklyRing: WeeklyRing = .off
-    /// Whether the reading adds the weekly ring's percentage, as "30%/70%".
-    var showsWeeklyReading: Bool = false
-    /// Whether the reading says what is left rather than what is spent.
-    var showsRemaining: Bool = false
-    /// Drawn on its own across the Mac's notch rather than under the ring: the
-    /// larger size, and no more room along the bar than `width`.
-    var across: CGFloat? = nil
-    /// Which end of that room it sits at — the Mac's notch's.
-    var acrossAlignment: Alignment = .leading
-
-    /// A dash, not "0%": nothing read is not the same as nothing used.
-    var text: String {
-        guard snapshot.hasReading else { return "—" }
-        guard let weekly = weeklyReading else { return snapshot.headlineText(showingRemaining: showsRemaining) }
-        // The second number flips with the first: in remaining mode both ends
-        // read what is left, each from the tooltip's own left half.
-        let second = showsRemaining ? Percent.halves(for: weekly).left : Percent.text(for: weekly)
-        return "\(snapshot.headlineText(showingRemaining: showsRemaining))/\(second)%"
-    }
-
-    /// Grey only when a window is actually spent — the headline or the
-    /// weekly — and only where the figure reads what is left. Grey means
-    /// "nothing usable": a stale number is merely old, a dash is merely
-    /// missing, and in used mode a spent window is 100% like anything else
-    /// spent — red, not grey — so all of those stay white.
-    var isDimmed: Bool {
-        guard showsRemaining else { return false }
-        return (snapshot.headline?.usedFraction ?? 0) >= 1
-            || (snapshot.weeklyFraction ?? 0) >= 1
-    }
-
-    /// Secondary while dimmed or while a local speed is still unmeasured.
-    private var foreground: Color {
-        isDimmed || (snapshot.showsLocalPerformance && snapshot.localPerformance == nil)
-            ? Palette.textSecondary : Palette.textPrimary
-    }
-
-    /// What the weekly ring draws, when it and its reading are on. The pair
-    /// mirrors the two rings, so with the weekly limit as the main ring or the
-    /// daily pace ring the second number is the session, as the thin ring is.
-    ///
-    /// Only after a percentage: a count or a cost with a percentage after it
-    /// would read as one quantity, and it is not.
-    private var weeklyReading: Double? {
-        guard showsWeeklyReading, weeklyRing != .off, snapshot.localModel == nil,
-              snapshot.usedFraction != nil, snapshot.headline?.prefersUsedText != true
-        else { return nil }
-        return snapshot.weeklyFraction
-    }
-
-    /// Whether it reads as the pair, "30%/70%".
-    var isPair: Bool { snapshot.hasReading && weeklyReading != nil }
-
-    /// How wide it is drawn across the Mac's notch, in design points — what
-    /// the side carrying it is sized to.
-    var acrossWidth: CGFloat {
-        let size = isPair ? Typography.percentPairAcrossSize : Typography.percentAcrossSize
-        let font = NSFont.monospacedDigitSystemFont(ofSize: size, weight: .semibold)
-        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
-    }
-
-    var body: some View {
-        if let width = across {
-            Text(text)
-                .font(isPair ? Typography.percentPairAcross : Typography.percentAcross)
-                .monospacedDigit()
-                .foregroundStyle(foreground)
-                .lineLimit(1)
-                // Never into the side's own curved end: smaller before that.
-                .minimumScaleFactor(0.4)
-                .frame(width: width, alignment: acrossAlignment)
-                .contentTransition(.numericText())
-                .animation(NotchMotion.reading, value: text)
-        } else {
-            underTheRing
-        }
-    }
-
-    private var underTheRing: some View {
-        Text(text)
-            .font(snapshot.hasReading && weeklyReading != nil ? Typography.percentPair : Typography.percent)
-            .foregroundStyle(foreground)
-            // Keep local speeds inside the ring's column so longer units
-            // cannot consume the notch's existing side margins.
-            .lineLimit(1)
-            .minimumScaleFactor(snapshot.localModel == nil ? 1 : 0.5)
-            .fixedSize(horizontal: snapshot.localModel == nil, vertical: false)
-            .frame(width: snapshot.localModel == nil ? nil : NotchLayout.ringDiameter,
-                   height: NotchLayout.percentLineHeight)
-            .contentTransition(.numericText())
-            .animation(NotchMotion.reading, value: text)
     }
 }

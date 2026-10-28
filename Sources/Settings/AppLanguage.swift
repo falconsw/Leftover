@@ -1,28 +1,19 @@
 import Foundation
 
-/// Which language Codenotch's own copy uses.
+/// Which language Leftover's own copy uses.
 ///
 /// Follow System is the default. A forced choice exists because the Mac's
 /// language is not always the one the person wants this app in — bilingual
 /// machines, or a Mac in a language we do not ship.
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system = "system"
-    case english = "en"
-    case french = "fr"
-    case german = "de"
-    case indonesian = "id"
-    case japanese = "ja"
-    case korean = "ko"
-    case brazilianPortuguese = "pt-BR"
-    case russian = "ru"
-    case simplifiedChinese = "zh-Hans"
-    case traditionalChinese = "zh-Hant"
-    case ukrainian = "uk"
-    case uzbek = "uz"
     case turkish = "tr"
-    case spanish = "es"
+    case english = "en"
 
     var id: String { rawValue }
+
+    /// The languages Leftover ships, and the only ones in the string catalog.
+    static let shipped = ["en", "tr"]
 
     /// `nil` means follow the Mac.
     ///
@@ -32,56 +23,36 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     /// bundle offers next — which made choosing English serve Chinese.
     var locale: Locale? {
         switch self {
-        case .system:              return nil
-        case .english:             return Locale(identifier: "en")
-        case .french:              return Locale(identifier: "fr")
-        case .german:              return Locale(identifier: "de")
-        case .indonesian:          return Locale(identifier: "id")
-        case .japanese:            return Locale(identifier: "ja")
-        case .korean:              return Locale(identifier: "ko")
-        case .brazilianPortuguese: return Locale(identifier: "pt-BR")
-        case .russian:             return Locale(identifier: "ru")
-        case .simplifiedChinese:   return Locale(identifier: "zh-Hans")
-        case .traditionalChinese:  return Locale(identifier: "zh-Hant")
-        case .ukrainian:           return Locale(identifier: "uk")
-        case .uzbek:               return Locale(identifier: "uz")
-        case .turkish:             return Locale(identifier: "tr")
-        case .spanish:             return Locale(identifier: "es")
+        case .system:  return nil
+        case .turkish: return Locale(identifier: "tr")
+        case .english: return Locale(identifier: "en")
         }
     }
 
-    /// English, Français, Deutsch, Bahasa Indonesia, 日本語, 한국어,
-    /// Português (Brasil), Русский, 简体中文, 繁體中文, Українська, Oʻzbekcha,
-    /// Türkçe and Español stay in their own language so the row is
-    /// recognizable when the rest of Settings is in another one.
+    /// Following the Mac means Turkish on a Mac that prefers it and English
+    /// on every other one, never a third language half-translated.
+    static var systemLocale: Locale {
+        let match = Bundle.preferredLocalizations(from: shipped,
+                                                  forPreferences: Locale.preferredLanguages).first
+        return Locale(identifier: match ?? "en")
+    }
+
+    /// Türkçe and English stay in their own language so the row is
+    /// recognizable when the rest of Settings is in the other one.
     var title: String {
         switch self {
-        case .system:              return L10n.t("Follow System")
-        case .english:             return "English"
-        case .french:              return "Français"
-        case .german:              return "Deutsch"
-        case .indonesian:          return "Bahasa Indonesia"
-        case .japanese:            return "日本語"
-        case .korean:              return "한국어"
-        case .brazilianPortuguese: return "Português (Brasil)"
-        case .russian:             return "Русский"
-        case .simplifiedChinese:   return "简体中文"
-        case .traditionalChinese:  return "繁體中文"
-        case .ukrainian:           return "Українська"
-        case .uzbek:               return "Oʻzbekcha"
-        case .turkish:             return "Türkçe"
-        case .spanish:             return "Español"
+        case .system:  return L10n.t("Follow System")
+        case .turkish: return "Türkçe"
+        case .english: return "English"
         }
     }
 
     var explanation: String {
         switch self {
         case .system:
-            return L10n.t("Matches the Mac's preferred language.")
-        case .english, .french, .german, .indonesian, .japanese, .korean,
-             .brazilianPortuguese, .russian, .simplifiedChinese, .traditionalChinese,
-             .ukrainian, .uzbek, .turkish, .spanish:
-            return L10n.t("Codenotch uses this language even if the Mac does not.")
+            return L10n.t("Turkish if the Mac uses Turkish, otherwise English.")
+        case .turkish, .english:
+            return L10n.t("Leftover uses this language even if the Mac does not.")
         }
     }
 }

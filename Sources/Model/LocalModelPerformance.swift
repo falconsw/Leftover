@@ -35,23 +35,11 @@ struct LocalModelPerformance: Equatable {
                   measuredAt: measuredAt)
     }
 
-    var fidelity: Fidelity { .derived }
     var tokensPerSecond: Double { Double(outputTokens) / generationSeconds }
     private var qualifier: String { isApproximate ? "~" : "" }
     var speedText: String {
         tokensPerSecond < 0.1 ? "\(qualifier)<0.1 tok/s"
             : "\(qualifier)\(tokensPerSecond.formatted(.number.precision(.fractionLength(0...1)))) tok/s"
-    }
-    var headlineText: String {
-        guard tokensPerSecond >= 1 else { return "<1 tok/s" }
-        // Whole tokens only: the label is scaled down to fit the ring's column,
-        // and the tenth costs two characters of font size for a digit nobody
-        // reads at that size. The approximate qualifier goes the same way;
-        // the tooltip's `speedText` keeps both.
-        let rounded = tokensPerSecond.rounded()
-        guard rounded >= 1000 else { return "\(Int(rounded)) tok/s" }
-        let value = rounded.formatted(.number.notation(.compactName).precision(.significantDigits(1...2)))
-        return "\(value) t/s"
     }
 
     enum Band: Equatable {
@@ -59,10 +47,10 @@ struct LocalModelPerformance: Equatable {
 
         var label: String {
             switch self {
-            case .veryFast: return "Very fast"
-            case .smooth: return "Smooth"
-            case .slow: return "Slow"
-            case .verySlow: return "Very slow"
+            case .veryFast: return L10n.t("Very fast")
+            case .smooth: return L10n.t("Smooth")
+            case .slow: return L10n.t("Slow")
+            case .verySlow: return L10n.t("Very slow")
             }
         }
         var color: Color {

@@ -1,6 +1,6 @@
-name: Codenotch
+name: Leftover
 options:
-  bundleIdPrefix: com.vinz
+  bundleIdPrefix: com.falconsw
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
@@ -10,20 +10,13 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
-    # Sparkle compares CFBundleVersion to decide what is newer, and
-    # Sources/Info.plist reads both from here — hardcoding them there instead
-    # silently pins every build to one version, so no customer ever sees an
-    # update. Bump CURRENT_PROJECT_VERSION on every release.
-    MARKETING_VERSION: "1.24.0"
-    CURRENT_PROJECT_VERSION: "26"
-    # Signed with a stable identity on purpose. The app reads Claude Code's
-    # OAuth token out of the login keychain, and the keychain's ACL remembers
-    # *which signed binary* was allowed. Ad-hoc or unsigned builds get a new
-    # identity on every rebuild, so "Always Allow" would be forgotten each time
-    # and the prompt would come back after every `make run`.
-    CODE_SIGN_IDENTITY: "Developer ID Application"
+    # Sources/Info.plist reads both from here. Bump both on every release;
+    # the Homebrew cask's `version` follows MARKETING_VERSION.
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Signing identity lives in Signing.xcconfig (ad-hoc unless a local
+    # Local.xcconfig names a Developer ID).
     CODE_SIGN_STYLE: Manual
-    DEVELOPMENT_TEAM: 6WFPL8B9FB
     CODE_SIGNING_REQUIRED: "YES"
     CODE_SIGNING_ALLOWED: "YES"
     # Required by notarization. Worth knowing what it does *not* break here:
@@ -39,14 +32,14 @@ packages:
   SwiftNIO:
     url: https://github.com/apple/swift-nio
     from: "2.102.0"
-  Sparkle:
-    url: https://github.com/sparkle-project/Sparkle
-    from: "2.6.0"
 
 targets:
-  Codenotch:
+  Leftover:
     type: application
     platform: macOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
     sources:
       - path: Sources
         excludes:
@@ -56,7 +49,6 @@ targets:
           # developer README has no business shipping to users.
           - "Vendor/**/README.md"
     dependencies:
-      - package: Sparkle
       - package: SwiftNIO
         product: NIOHTTP1
       - package: SwiftNIO
@@ -64,28 +56,12 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        # Deliberately a normal Dock app, not an `LSUIElement` agent. The
-        # notch is ambient, but the *app* still has to be findable: without a
-        # Dock tile there is nothing to click to open it, nothing in Cmd-Tab,
-        # and no obvious way to reach settings or quit.
-        CFBundleName: Codenotch
-        CFBundleDisplayName: Codenotch
+        CFBundleName: Leftover
+        CFBundleDisplayName: Leftover
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations:
           - en
-          - fr
-          - de
-          - id
-          - ja
-          - ko
-          - pt-BR
-          - ru
-          - zh-Hans
-          - zh-Hant
-          - uk
-          - uz
           - tr
-          - es
         LSMinimumSystemVersion: "15.0"
         # Sources/Info.plist is *generated* from this block, so editing that
         # file directly is undone by the next `make gen`. Pointing both at the
@@ -98,32 +74,10 @@ targets:
           NSExceptionDomains:
             "100.64.0.0/10":
               NSExceptionAllowsInsecureHTTPLoads: true
-        NSLocalNetworkUsageDescription: "Codenotch answers your phone on this network so it can show your usage."
-        # --- Sparkle -------------------------------------------------------
-        # Beside the download itself, on hivinz.com. It used to point at a
-        # GitHub Pages URL for a repo that was never created, so every check
-        # got a 404 and Sparkle reported "an error occurred in retrieving
-        # update information" — correctly, since there was nothing there.
-        #
-        # Must stay reachable for as long as any copy is installed: the feed is
-        # the only route by which a shipped build can ever be replaced.
-        SUFeedURL: https://hivinz.com/appcast.xml
-        # The public half of the EdDSA key in the login keychain. Sparkle
-        # refuses any update not signed by its private half, so a hijacked feed
-        # or a swapped download cannot install code. Losing the private key
-        # means no existing install can ever be updated again — back it up.
-        SUPublicEDKey: rmUfT5r49nR+3HdkbR5/YYLghfnAi6L49eOk3sIegSk=
-        # Set explicitly so Sparkle never asks on first launch. Left unset, it
-        # shows a "check for updates automatically?" prompt, which is exactly
-        # the permission this is meant to avoid.
-        SUEnableAutomaticChecks: true
-        # Never downloads unasked: a new version is offered in the notch and
-        # installed when Update is chosen — see `Updater`.
-        SUAutomaticallyUpdate: false
-        SUScheduledCheckInterval: 86400
+        NSLocalNetworkUsageDescription: "Leftover reads usage from model servers on your local network, such as Ollama or LM Studio."
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.vinz.codenotch
+        PRODUCT_BUNDLE_IDENTIFIER: com.falconsw.leftover
         GENERATE_INFOPLIST_FILE: "NO"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_EMIT_LOC_STRINGS: "YES"
@@ -134,29 +88,12 @@ targets:
         # anywhere a signed, notarized app can reach — see
         # Sources/Vendor/zstd/README.md. Delete this line and that directory
         # together if the Desktop source is ever dropped.
-        SWIFT_OBJC_BRIDGING_HEADER: Sources/Codenotch-Bridging-Header.h
-
-  CodenotchTests:
-    type: bundle.unit-test
-    platform: macOS
-    sources:
-      - path: Tests
-    dependencies:
-      - target: Codenotch
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.vinz.codenotch.tests
-        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Leftover-Bridging-Header.h
 
 schemes:
-  Codenotch:
+  Leftover:
     build:
       targets:
-        Codenotch: all
-        CodenotchTests: [test]
+        Leftover: all
     run:
       config: Debug
-    test:
-      config: Debug
-      targets:
-        - CodenotchTests

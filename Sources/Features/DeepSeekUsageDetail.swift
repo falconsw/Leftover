@@ -8,7 +8,7 @@ struct DeepSeekUsageDetail: View {
     let now: Date
     let schedule: DeepSeekPricing.Schedule
     let showsPricing: Bool
-    @Environment(\.codenotchAccentColor) private var accentColor
+    @Environment(\.leftoverAccentColor) private var accentColor
     @Environment(\.providerDetailWidth) private var detailWidth
     @ObservedObject private var holidays = ChineseHolidays.shared
 

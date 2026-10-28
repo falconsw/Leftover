@@ -20,21 +20,6 @@ enum BusyIndicatorStyle: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
-        switch self {
-        case .arc: return L10n.t("Spinning arc")
-        case .breath: return L10n.t("Breathing disc")
-        }
-    }
-
-    var explanation: String {
-        switch self {
-        case .arc:
-            return L10n.t("A thin white arc turns inside the ring while an agent works; queued requests become a ring of dots.")
-        case .breath:
-            return L10n.t("A disc in the provider's brand colour breathes under its mark while an agent works, faster when requests are queued.")
-        }
-    }
 }
 
 private struct BusyIndicatorStyleKey: EnvironmentKey {

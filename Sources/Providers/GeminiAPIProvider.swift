@@ -121,14 +121,14 @@ actor GeminiAPIProvider: UsageProvider {
             ),
             LimitWindow(
                 id: "today",
-                label: "Tokens today",
+                label: L10n.t("Tokens today"),
                 used: total.tokensToday,
                 resetsAt: calendar.dateInterval(of: .day, for: now)?.end
             )
         ]
         // The rows that make the headline checkable: which tool spent what.
         windows += sources.map {
-            LimitWindow(id: $0.id, label: "\($0.name) · this month", used: $0.usage.tokensThisMonth)
+            LimitWindow(id: $0.id, label: L10n.t("\($0.name) · this month"), used: $0.usage.tokensThisMonth)
         }
 
         return ProviderSnapshot(
