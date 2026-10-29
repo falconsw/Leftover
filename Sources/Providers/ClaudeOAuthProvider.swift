@@ -296,7 +296,9 @@ actor ClaudeOAuthProvider: UsageProvider {
         slug == nil && loginCount <= 1
     }
 
-    private static let loginCount: Int = ClaudeProfile.discover().count
+    /// Not under test: the suite runs on whatever Mac hosts it, and its CLI
+    /// stubs must be reached whatever that Mac's logins are.
+    private static let loginCount: Int = Runtime.isUnderTest ? 1 : ClaudeProfile.discover().count
 
     private func fetchFromKeychain(reusableFor reuseInterval: TimeInterval) async throws -> ProviderSnapshot {
         if Self.shouldHoldOff(until: retryNoEarlierThan, slack: backoffSlack),

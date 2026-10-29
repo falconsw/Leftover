@@ -209,8 +209,11 @@ final class ClaudeKeychain: @unchecked Sendable {
         self.reader = reader
     }
 
+    /// The app's preferences in the app. Under test the host *is* the
+    /// installed app, so its real answer would decide what the tests read.
     convenience init(profile: ClaudeProfile) {
-        self.init(services: profile.keychainServices, refusals: .standard)
+        self.init(services: profile.keychainServices,
+                  refusals: Runtime.isUnderTest ? nil : .standard)
     }
 
     /// The person said no to this login and has not asked again. While true,

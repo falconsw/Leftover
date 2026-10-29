@@ -82,6 +82,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // A menu bar app: no Dock icon. The Settings window brings it forward when needed.
         NSApp.setActivationPolicy(.accessory)
+        // The unit tests are hosted by this app, so `xcodebuild test` launches
+        // it for real. Without this every test run would hit the usage
+        // endpoints and the keychain.
+        guard !Runtime.isUnderTest else { return }
         Self.retireOlderInstances()
         MacNotifications.installPresenter()
 

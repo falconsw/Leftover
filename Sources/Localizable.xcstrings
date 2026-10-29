@@ -242,6 +242,28 @@
         }
       }
     },
+    "%lld%% Used · %lld%% left" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%%%lld kullanıldı · %%%lld kaldı"
+          }
+        }
+      }
+    },
+    "%lld%% left · %lld%% Used" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%%%lld kaldı · %%%lld kullanıldı"
+          }
+        }
+      }
+    },
     "%@%% Used · %@%% left" : {
       "extractionState" : "manual",
       "localizations" : {

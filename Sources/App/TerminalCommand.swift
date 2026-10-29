@@ -38,8 +38,9 @@ enum TerminalCommand {
         dirs += (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map(String.init)
         var ok = dirs.contains { FileManager.default.isExecutableFile(atPath: "\($0)/\(binary)") }
         // The login shell knows about version managers (nvm, mise) that the
-        // list above does not.
-        if !ok { ok = loginShellFinds(binary) }
+        // list above does not. Not under test: the suite must not depend on
+        // what the host Mac has installed.
+        if !ok, !Runtime.isUnderTest { ok = loginShellFinds(binary) }
         cacheLock.lock()
         installedCache[binary] = (Date(), ok)
         cacheLock.unlock()

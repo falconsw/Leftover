@@ -116,7 +116,7 @@ final class MuseKeychain: @unchecked Sendable {
     private let refusal: KeychainRefusal
 
     init(now: @escaping () -> Date = Date.init,
-         refusals: UserDefaults? = .standard,
+         refusals: UserDefaults? = Runtime.isUnderTest ? nil : .standard,
          reader: @escaping (_ interactive: Bool) throws -> String
             = { try MuseCredentials.read(interactive: $0) }) {
         self.prompt = PromptPermission(now: now)

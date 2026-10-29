@@ -90,10 +90,30 @@ targets:
         # together if the Desktop source is ever dropped.
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Leftover-Bridging-Header.h
 
+  LeftoverTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Leftover
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.falconsw.leftover.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+
 schemes:
   Leftover:
     build:
       targets:
         Leftover: all
+        LeftoverTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - LeftoverTests

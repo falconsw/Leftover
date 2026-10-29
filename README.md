@@ -72,6 +72,8 @@ make run
 `make run` generates the Xcode project, builds a Debug copy and launches it.
 Builds are ad-hoc signed, so they run on your own Mac.
 
+`make test` runs the unit tests.
+
 ### Signing with a Developer ID
 
 Leftover reads Claude Code's token from the login keychain, and the keychain

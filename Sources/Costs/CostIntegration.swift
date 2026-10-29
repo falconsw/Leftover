@@ -12,7 +12,9 @@ enum Costs {
     /// token chart and summary the Codex server publishes for Codex, built
     /// here from the transcripts Claude Code writes.
     static func decorate(_ snapshot: ProviderSnapshot) -> ProviderSnapshot {
-        guard snapshot.tokenUsage == nil,
+        // The suite compares cells to what it fed in; the machine's own
+        // accounts and transcripts must not leak into that.
+        guard !Runtime.isUnderTest, snapshot.tokenUsage == nil,
               let usage = CostModels.model(for: snapshot.id)?.tokenUsage else { return snapshot }
         var snapshot = snapshot
         snapshot.tokenUsage = usage
