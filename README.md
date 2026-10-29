@@ -60,12 +60,26 @@ macOS 15 or later.
 
 ## Install
 
+With [Homebrew](https://brew.sh):
+
 ```sh
+brew trust falconsw/tap      # recent Homebrew asks you to trust a tap once
 brew install --cask falconsw/tap/leftover
 ```
 
-If Homebrew refuses an untrusted tap, run `brew trust falconsw/tap` first.
-Or download the DMG from [Releases](https://github.com/falconsw/Leftover/releases).
+Leftover goes to `/Applications`. Open it and its ring appears in the menu bar.
+
+| | |
+|---|---|
+| Update | `brew upgrade --cask leftover` |
+| Uninstall | `brew uninstall --cask leftover` |
+| Uninstall and remove its settings, caches and sign-ins | `brew uninstall --zap --cask leftover` |
+
+Without Homebrew, download the DMG from
+[Releases](https://github.com/falconsw/Leftover/releases) and drag Leftover to
+Applications. It is signed and notarized.
+
+### Build from source
 
 To build from source you need Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 (`brew install xcodegen`):
