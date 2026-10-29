@@ -3,18 +3,48 @@
 A macOS menu bar app that shows how much of your AI coding tools' usage limits
 is left.
 
-Leftover sits in the menu bar. Click it for a panel with a ring for every
-connected account: Claude Code, Codex, Cursor, Antigravity, GitHub Copilot,
-Grok, OpenCode, Kiro, Gemini, GLM, Kimi, MiniMax, DeepSeek and more, plus local
-model servers such as Ollama, LM Studio and oMLX.
+<p align="center"><img src="docs/panel.png" width="388" alt="The Leftover panel: a ring per account, and the hovered account's limits below"></p>
 
-- **Your limits at a glance.** Each ring shows how much of a limit is used and
-  when it resets. Hover a ring for its details, click it to read it again.
-- **No passwords.** Every reading comes from the sign-in already on your Mac
-  (the CLI's or app's own credentials); Leftover never asks for one and never
-  writes them.
-- **Notifications** when a limit runs out or resets, and when an agent session
-  finishes or is waiting on you.
+Leftover sits in the menu bar. Click it for a panel with a ring for every
+connected account; hover a ring for that account's limits and when they reset.
+
+## Features
+
+**Usage limits**
+- A ring per account, coloured by how close it is to the limit, with the
+  percentage inside. Click a ring to read it again right away.
+- Every limit window an account has (session, weekly, per model, monthly
+  credits), each with how much is used, how much is left and when it resets.
+- **More** opens the full card: the agent sessions running now, reset credits,
+  Codex token usage and a DeepSeek cost breakdown.
+- What used a Claude or Codex allowance: the projects behind it this week, and
+  what that share is worth.
+
+**Supported tools**
+- Coding agents and editors: Claude Code (and Claude Desktop), Codex, Cursor,
+  Antigravity, GitHub Copilot, Grok, OpenCode, Kiro, Kilo, Amp, Devin,
+  Command Code, Gemini CLI and API.
+- Model platforms: GLM (Z.ai), Kimi, MiniMax, DeepSeek, Qwen, Qoder, Apify,
+  Higgsfield.
+- Local model servers: Ollama, LM Studio and oMLX, with the loaded model,
+  its context use and tokens per second.
+
+**No passwords**
+- Every reading comes from the sign-in already on your Mac: the CLI's or app's
+  own credentials, read and never written. Platforms with only a web console
+  (DeepSeek, Qwen, MiniMax) sign in inside Leftover's own browser window.
+
+**Notifications**
+- When a limit runs out, when it resets, and when an agent finishes its turn or
+  stops to ask you something. Each one can be switched on or off, with or
+  without sound.
+
+**Your way**
+- Menu bar title: logo only, a percentage, or name and percentage, for the
+  provider you pick or the most used one; show what is used or what is left.
+- Ring order: by hand, by what is left, or by how far ahead of pace you are.
+- Light, dark or system theme, adjustable panel transparency, English and
+  Turkish, open at login.
 
 ## Credits
 

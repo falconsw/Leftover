@@ -132,6 +132,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 feed.setSessions(providerID: id, sessions: sessions)
             }
             feed.setLocalActivities(Fixtures.localActivities())
+            let menuBar = MenuBarController(
+                model: feed.model,
+                refresh: { _ in nil },
+                onSettings: { [weak self] in self?.openSettings() },
+                onOpen: {},
+                preferences: preferences)
+            self.newMenuBar = menuBar
+            // Opened once so a screenshot needs no click on the menu bar.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { menuBar.open() }
         } else {
             // DeepSeek's Platform usage page is a browser-session provider:
             // login is explicit, stays in Leftover's own WKWebView store, and

@@ -89,6 +89,12 @@ final class MenuBarController {
         }
     }
 
+    func open() {
+        guard !popover.isShown else { return }
+        show()
+        onOpen()
+    }
+
     private func show() {
         guard let button = item.button else { return }
         // Left alone the popover takes the menu bar's look, which follows
