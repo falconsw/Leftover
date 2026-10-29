@@ -53,8 +53,8 @@ your own Developer ID:
 cp Local.xcconfig.example Local.xcconfig   # then set DEVELOPMENT_TEAM
 ```
 
-`make release` builds a signed Release copy and zips it to
-`build/Leftover-<version>.zip`.
+`make release` builds a signed, notarized DMG in `dist/` (it also needs a
+`notarytool` keychain profile; see `Scripts/release.sh`).
 
 ### Demo mode
 

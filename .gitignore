@@ -12,3 +12,4 @@ xcuserdata/
 .playwright-mcp/
 /plans/
 Local.xcconfig
+dist/
