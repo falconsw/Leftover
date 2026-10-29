@@ -93,6 +93,11 @@ cp Local.xcconfig.example Local.xcconfig   # then set DEVELOPMENT_TEAM
 `make release` builds a signed, notarized DMG in `dist/` (it also needs a
 `notarytool` keychain profile; see `Scripts/release.sh`).
 
+`make publish` releases the version in `project.yml`: it builds and notarizes
+the DMG, tags it, creates the GitHub Release from the version's entry in
+`ReleaseNotes.swift`, and updates the Homebrew cask. `DRY_RUN=1 make publish`
+only runs the checks and prints the notes.
+
 ### Demo mode
 
 `LEFTOVER_DEMO=1` fills the panel with sample data, which is handy for

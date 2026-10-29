@@ -3,7 +3,7 @@ APP := build/DerivedData/Build/Products/Debug/Leftover.app
 XCODEBUILD = xcodebuild -project Leftover.xcodeproj -scheme Leftover \
 	-derivedDataPath build/DerivedData
 
-.PHONY: gen build run test release clean
+.PHONY: gen build run test release publish clean
 
 gen:
 	xcodegen generate
@@ -22,6 +22,10 @@ test: gen
 # Notarized DMG in dist/ for GitHub Releases and the Homebrew cask.
 release:
 	Scripts/release.sh
+
+# DMG, tag, GitHub Release and Homebrew cask for the version in project.yml.
+publish:
+	Scripts/publish.sh
 
 clean:
 	rm -rf build dist
