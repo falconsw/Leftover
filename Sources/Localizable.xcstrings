@@ -264,6 +264,39 @@
         }
       }
     },
+    "A maintenance release." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bakım sürümü."
+          }
+        }
+      }
+    },
+    "Updates through Homebrew" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew ile güncelleme"
+          }
+        }
+      }
+    },
+    "Installed with Homebrew? brew upgrade --cask leftover brings each new version." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew ile mi kurdunuz? Her yeni sürümü brew upgrade --cask leftover getirir."
+          }
+        }
+      }
+    },
     "%@%% Used · %@%% left" : {
       "extractionState" : "manual",
       "localizations" : {

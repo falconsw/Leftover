@@ -31,6 +31,16 @@ enum ReleaseNotes {
     static var all: [ReleaseNote] {
         [
             ReleaseNote(
+                version: "1.0.1",
+                headline: L10n.t("A maintenance release."),
+                changes: [
+                    ReleaseNote.Change(
+                        title: L10n.t("Updates through Homebrew"),
+                        detail: L10n.t("Installed with Homebrew? brew upgrade --cask leftover brings each new version.")
+                    ),
+                ]
+            ),
+            ReleaseNote(
                 version: "1.0.0",
                 headline: L10n.t("The first release."),
                 changes: [
