@@ -1,9 +1,22 @@
-# Leftover
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Leftover icon">
+</p>
 
-A macOS menu bar app that shows how much of your AI coding tools' usage limits
-is left.
+<h1 align="center">Leftover</h1>
 
-<p align="center"><img src="docs/panel.png" width="388" alt="The Leftover panel: a ring per account, and the hovered account's limits below"></p>
+<p align="center">
+  A macOS menu bar app that shows how much of your AI coding tools' usage limits is left.
+</p>
+
+<p align="center">
+  <a href="https://github.com/falconsw/Leftover/releases/latest"><img src="https://img.shields.io/github/v/release/falconsw/Leftover" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/macOS-15%2B-blue" alt="macOS 15 or later">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/falconsw/Leftover" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <img src="docs/panel.png" width="408" alt="The Leftover panel: a ring per account, and the selected account's limits below">
+</p>
 
 Leftover sits in the menu bar. Click it for a panel with a ring for every
 connected account; hover a ring for that account's limits and when they reset.
@@ -114,8 +127,8 @@ only runs the checks and prints the notes.
 
 ### Demo mode
 
-`LEFTOVER_DEMO=1` fills the panel with sample data, which is handy for
-screenshots:
+`LEFTOVER_DEMO=1` fills the panel with sample data and also shows it in a window
+on your sharpest display, ready for a screenshot (`docs/panel.png` is one):
 
 ```sh
 LEFTOVER_DEMO=1 build/DerivedData/Build/Products/Debug/Leftover.app/Contents/MacOS/Leftover

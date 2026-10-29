@@ -30,6 +30,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// reports the state after the change and cannot answer what it was before.
     private var busyProviderIDs: Set<String> = []
 
+    private var demoWindow: NSWindow?
+
+    /// Demo mode's panel in a window of its own, on the sharpest display, so a
+    /// screenshot needs no click on the menu bar and comes out at full resolution.
+    private func showDemoPanel(model: PanelModel, preferences: Preferences) {
+        let panel = MenuBarPanel(refresh: { _ in nil }, onSettings: {}, preferences: preferences)
+        // The card is translucent; on its own a screenshot would show it over
+        // whatever page it is pasted into. A dark desktop stands in.
+        let backed = panel.environmentObject(model)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(white: 0.12)))
+        let hosting = NSHostingView(rootView: backed)
+        hosting.setFrameSize(hosting.fittingSize)
+        let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless],
+                              backing: .buffered, defer: false)
+        window.contentView = hosting
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = true
+        window.level = .floating
+        window.appearance = NSApp.effectiveAppearance
+        if let screen = NSScreen.screens.max(by: { $0.backingScaleFactor < $1.backingScaleFactor }) {
+            window.setFrameOrigin(NSPoint(x: screen.visibleFrame.midX - hosting.frame.width / 2,
+                                          y: screen.visibleFrame.midY - hosting.frame.height / 2))
+        }
+        window.orderFrontRegardless()
+        demoWindow = window
+    }
+
     /// Quit any copy of Leftover that was already running.
     ///
     /// A second copy would put a second item in the menu bar and poll every
@@ -124,11 +152,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let feed = PanelFeed()
         self.feed = feed
 
-        // `LEFTOVER_DEMO=1` puts the design frame's three providers and one
-        // local model on screen with its numbers, for screenshots and for
-        // eyeballing the layout.
-        // The queued local model and the stale ring are there so the busy
-        // indicator's two edge cases can be eyeballed.
+        // `LEFTOVER_DEMO=1` shows the sample readings in `Fixtures` instead of
+        // real ones, for screenshots and for eyeballing the layout.
         let isDemo = ProcessInfo.processInfo.environment["LEFTOVER_DEMO"] == "1"
         if isDemo {
             feed.setSnapshots(Fixtures.snapshots())
@@ -143,8 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 onOpen: {},
                 preferences: preferences)
             self.newMenuBar = menuBar
-            // Opened once so a screenshot needs no click on the menu bar.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { menuBar.open() }
+            showDemoPanel(model: feed.model, preferences: preferences)
         } else {
             // DeepSeek's Platform usage page is a browser-session provider:
             // login is explicit, stays in Leftover's own WKWebView store, and
