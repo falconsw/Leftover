@@ -275,6 +275,39 @@
         }
       }
     },
+    "GLM usage for cprov users." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cprov kullananlar için GLM kullanımı."
+          }
+        }
+      }
+    },
+    "Reads the Z.ai key behind a cprov profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cprov profilindeki Z.ai anahtarını okur"
+          }
+        }
+      }
+    },
+    "Switching Claude Code between providers with cprov? Leftover now finds the GLM Coding Plan key in your cprov profile when no other tool holds it. macOS asks once for access to it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code'u cprov ile sağlayıcılar arasında mı değiştiriyorsunuz? Başka bir araçta kayıtlı değilse Leftover artık GLM Coding Plan anahtarını cprov profilinizde bulur. macOS erişim için bir kez sorar."
+          }
+        }
+      }
+    },
     "Updates through Homebrew" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4285,12 +4318,12 @@
         }
       }
     },
-    "Usage rides on a Z.ai GLM Coding Plan key held by a coding tool — Claude Code's settings.json, ZCode or OpenCode. Set one up there and Leftover reads it." : {
+    "Usage rides on a Z.ai GLM Coding Plan key held by a coding tool — Claude Code's settings.json, a cprov profile, ZCode or OpenCode. Set one up there and Leftover reads it." : {
       "localizations" : {
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kullanım, bir kodlama aracında kayıtlı Z.ai GLM Coding Plan anahtarıyla okunur: Claude Code'un settings.json dosyası, ZCode ya da OpenCode. Anahtarı orada ayarlayın, Leftover okusun."
+            "value" : "Kullanım, bir kodlama aracında kayıtlı Z.ai GLM Coding Plan anahtarıyla okunur: Claude Code'un settings.json dosyası, bir cprov profili, ZCode ya da OpenCode. Anahtarı orada ayarlayın, Leftover okusun."
           }
         }
       }

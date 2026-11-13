@@ -28,6 +28,14 @@ import Foundation
 /// 3. **OpenCode** — `~/.local/share/opencode/auth.json`, keyed under a
 ///    handful of provider names for the global (`z.ai`) and China
 ///    (`bigmodel.cn`) consoles.
+/// 4. **cprov** — `~/.config/cprov/profiles/*.json`, for a Claude Code that is
+///    switched between providers per terminal. cprov keeps the key out of
+///    `settings.json` on purpose — `cprov glm` hands it to that one session —
+///    so the first source finds nothing unless GLM happens to be the default.
+///    The profile says which key is a Z.ai one; the key itself is in the
+///    login keychain under service `cprov`, account = profile name. That makes
+///    this the one source whose read can prompt, which is why it is tried
+///    last and held in a `CredentialCache` (see `CprovKeys`).
 enum GLMCredentials {
     struct Credential {
         let token: String
@@ -57,11 +65,29 @@ enum GLMCredentials {
             .appendingPathComponent(".local/share/opencode/auth.json")
     }
 
-    static func load() -> Credential? {
-        load(claudeSettings: claudeSettingsURL,
-             zcodeConfig: zcodeConfigURL,
-             zcodeCredentials: zcodeCredentialsURL,
-             openCodeAuth: openCodeAuthURL)
+    /// Throws only for the cprov source: a keychain read that macOS refused
+    /// is not the same as no key anywhere, and must not be reported as one.
+    static func load() throws -> Credential? {
+        try load(claudeSettings: claudeSettingsURL,
+                 zcodeConfig: zcodeConfigURL,
+                 zcodeCredentials: zcodeCredentialsURL,
+                 openCodeAuth: openCodeAuthURL)
+            ?? cprov(CprovKeys.home, key: CprovKeys.key)
+    }
+
+    /// Who holds the key and for which console, without reading a keychain
+    /// item's data — for the settings row, which is redrawn far too often to
+    /// be the reason a dialogue appears.
+    static func holder() -> (source: String, baseURL: URL)? {
+        if let found = load(claudeSettings: claudeSettingsURL,
+                            zcodeConfig: zcodeConfigURL,
+                            zcodeCredentials: zcodeCredentialsURL,
+                            openCodeAuth: openCodeAuthURL) {
+            return (found.source, found.baseURL)
+        }
+        return cprovProfiles(CprovKeys.home)
+            .first { CprovKeys.isPresent(account: $0.name) }
+            .map { ("cprov", $0.console) }
     }
 
     /// Every path is a parameter so a test can point each source at its own
@@ -247,6 +273,52 @@ enum GLMCredentials {
         id.hasPrefix("zhipu")
             ? URL(string: "https://open.bigmodel.cn")!
             : URL(string: "https://api.z.ai")!
+    }
+
+    // MARK: cprov
+
+    /// The key-holding Z.ai profiles under a cprov home, sorted by name so
+    /// that two of them give a stable answer.
+    ///
+    /// A built-in profile names its provider (`"provider": "zai"`) and leaves
+    /// the endpoint to cprov's catalog; a custom one carries its own
+    /// `baseUrl`, and is claimed on the same evidence a `settings.json` key
+    /// is — the host. `"auth": "subscription"` profiles have no key to find.
+    static func cprovProfiles(_ home: URL) -> [(name: String, console: URL)] {
+        let directory = home.appendingPathComponent("profiles")
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil)) ?? []
+
+        return files
+            .filter { $0.pathExtension == "json" }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            .compactMap { file -> (name: String, console: URL)? in
+                guard let profile = dictionary(at: file),
+                      string(profile["auth"]) == "key"
+                else { return nil }
+                // cprov files the key under the file's own name; the `name`
+                // field inside is a copy of it.
+                let name = file.deletingPathExtension().lastPathComponent
+
+                if let host = string(profile["baseUrl"]).flatMap({ URL(string: $0) })?.host {
+                    return isZaiHost(host) ? (name, consoleBase(from: host)) : nil
+                }
+                return string(profile["provider"]) == "zai"
+                    ? (name, URL(string: "https://api.z.ai")!)
+                    : nil
+            }
+    }
+
+    /// The first Z.ai profile that has a key. `key` is a parameter so a test
+    /// can stand in for the keychain; a throw from it — macOS said no — is
+    /// passed on rather than read as a profile without a key.
+    static func cprov(_ home: URL, key: (String) throws -> String?) rethrows -> Credential? {
+        for profile in cprovProfiles(home) {
+            if let token = try key(profile.name), !token.isEmpty {
+                return Credential(token: token, baseURL: profile.console, source: "cprov")
+            }
+        }
+        return nil
     }
 
     // MARK: Shared

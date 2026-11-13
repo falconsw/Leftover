@@ -489,6 +489,82 @@ final class GLMCredentialsTests: XCTestCase {
         XCTAssertFalse(GLMCredentials.zcodeSettingsHasStartPlanOnly(missing))
     }
 
+    // MARK: cprov
+
+    /// A cprov home with these profile files, each given as its JSON.
+    private func cprovHome(_ profiles: [String: String], secrets: String? = nil) throws -> URL {
+        let home = scratch.appendingPathComponent("cprov-\(UUID().uuidString)")
+        let directory = home.appendingPathComponent("profiles")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for (name, json) in profiles {
+            try Data(json.utf8).write(to: directory.appendingPathComponent("\(name).json"))
+        }
+        if let secrets {
+            try Data(secrets.utf8).write(to: home.appendingPathComponent("secrets.json"))
+        }
+        return home
+    }
+
+    /// `cprov glm` keeps the key out of settings.json, so the profile is the
+    /// only thing on disk that says a Z.ai key exists — and where it is filed.
+    func testReadsTheKeyBehindACprovZaiProfile() throws {
+        let home = try cprovHome([
+            "claude": #"{"name": "claude", "provider": "anthropic", "auth": "subscription"}"#,
+            "glm": #"{"name": "glm", "provider": "zai", "auth": "key", "model": "glm-5.3-flash[1m]"}"#,
+            "minimax": #"{"name": "minimax", "provider": "minimax", "auth": "key"}"#
+        ])
+        var asked: [String] = []
+        let credential = GLMCredentials.cprov(home) { account in
+            asked.append(account)
+            return "cprov-glm-key"
+        }
+        XCTAssertEqual(credential?.token, "cprov-glm-key")
+        XCTAssertEqual(credential?.source, "cprov")
+        XCTAssertEqual(credential?.baseURL.host, "api.z.ai")
+        XCTAssertEqual(asked, ["glm"], "another provider's key is never asked for, let alone claimed")
+    }
+
+    /// A custom profile is claimed on its host, the same evidence a
+    /// settings.json key is claimed on — and the host picks the console.
+    func testACustomCprovProfileIsJudgedByItsBaseURL() throws {
+        let home = try cprovHome([
+            "cn": #"{"provider": "custom", "auth": "key", "baseUrl": "https://open.bigmodel.cn/api/anthropic"}"#,
+            "gateway": #"{"provider": "custom", "auth": "key", "baseUrl": "https://llm.example.com/anthropic"}"#
+        ])
+        let profiles = GLMCredentials.cprovProfiles(home)
+        XCTAssertEqual(profiles.map(\.name), ["cn"])
+        XCTAssertEqual(profiles.first?.console.host, "open.bigmodel.cn")
+    }
+
+    func testACprovProfileWithNoStoredKeyIsNotACredential() throws {
+        let home = try cprovHome(["glm": #"{"provider": "zai", "auth": "key"}"#])
+        XCTAssertNil(GLMCredentials.cprov(home) { _ in nil })
+        XCTAssertNil(GLMCredentials.cprov(scratch.appendingPathComponent("no-cprov-here")) { _ in "key" },
+                     "cprov not installed is simply one source fewer")
+    }
+
+    /// A declined keychain prompt is not a missing key: it has to reach the
+    /// row as itself, or the row says "set a key up" to someone who has one.
+    func testAKeychainRefusalIsPassedOnRatherThanReadAsNoKey() throws {
+        let home = try cprovHome(["glm": #"{"provider": "zai", "auth": "key"}"#])
+        XCTAssertThrowsError(try GLMCredentials.cprov(home) { _ in throw UsageProviderError.accessDenied }) {
+            guard case UsageProviderError.accessDenied = $0 else { return XCTFail("\($0)") }
+        }
+    }
+
+    func testReadsCprovsFileBackend() throws {
+        let home = try cprovHome([:], secrets: #"{"glm": "file-key", "empty": " "}"#)
+        XCTAssertEqual(CprovKeys.fileKey(account: "glm", home: home), "file-key")
+        XCTAssertNil(CprovKeys.fileKey(account: "empty", home: home))
+        XCTAssertNil(CprovKeys.fileKey(account: "minimax", home: home))
+    }
+
+    func testCprovHomeFollowsCprovsOwnRule() {
+        XCTAssertEqual(CprovKeys.home(environment: ["CPROV_HOME": "/tmp/c", "XDG_CONFIG_HOME": "/tmp/x"]).path, "/tmp/c")
+        XCTAssertEqual(CprovKeys.home(environment: ["XDG_CONFIG_HOME": "/tmp/x"]).path, "/tmp/x/cprov")
+        XCTAssertEqual(CprovKeys.home(environment: [:]).path, NSHomeDirectory() + "/.config/cprov")
+    }
+
     // MARK: OpenCode
 
     func testReadsAnOpenCodeKeyFromTheCodingPlanEntry() throws {

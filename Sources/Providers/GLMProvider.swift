@@ -34,16 +34,17 @@ actor GLMProvider: UsageProvider {
     }
 
     nonisolated var signInRoute: SignInRoute {
-        .guidance(L10n.t("Usage rides on a Z.ai GLM Coding Plan key held by a coding tool — Claude Code's settings.json, ZCode or OpenCode. Set one up there and Leftover reads it."))
+        .guidance(L10n.t("Usage rides on a Z.ai GLM Coding Plan key held by a coding tool — Claude Code's settings.json, a cprov profile, ZCode or OpenCode. Set one up there and Leftover reads it."))
     }
 
     nonisolated func forgetCachedCredential() {
-        // Nothing is cached: the key is re-read from disk on every fetch,
-        // which is prompt-free, unlike a keychain read.
+        // The file sources cache nothing — they are re-read on every fetch,
+        // prompt-free. Only a cprov key comes out of the keychain.
+        CprovKeys.forgetCached()
     }
 
     nonisolated func account() -> ProviderAccount? {
-        guard let credentials = GLMCredentials.load() else { return nil }
+        guard let credentials = GLMCredentials.holder() else { return nil }
         return ProviderAccount(
             label: nil,   // none of the borrowed keys carries an address
             plan: lastKnownPlan,
@@ -61,10 +62,10 @@ actor GLMProvider: UsageProvider {
             throw UsageProviderError.rateLimited(retryAfter: remaining)
         }
 
-        // Re-read on every fetch. These are ordinary files, not keychain items:
-        // reading them puts no prompt in front of anyone, which is why this
-        // provider needs none of Claude's credential caching.
-        guard let credentials = GLMCredentials.load() else {
+        // Re-read on every fetch. The file sources are ordinary files:
+        // reading them puts no prompt in front of anyone. The cprov fallback
+        // is a keychain item, and does its own caching behind `load`.
+        guard let credentials = try GLMCredentials.load() else {
             if GLMCredentials.zcodeHasStartPlan() || GLMCredentials.zcodeSettingsHasStartPlanOnly() {
                 throw UsageProviderError.nothingMetered(
                     L10n.t("Z.ai does not publish usage for the GLM Start Plan yet, so there is nothing to read. The Coding Plan is supported.")

@@ -31,6 +31,16 @@ enum ReleaseNotes {
     static var all: [ReleaseNote] {
         [
             ReleaseNote(
+                version: "1.0.2",
+                headline: L10n.t("GLM usage for cprov users."),
+                changes: [
+                    ReleaseNote.Change(
+                        title: L10n.t("Reads the Z.ai key behind a cprov profile"),
+                        detail: L10n.t("Switching Claude Code between providers with cprov? Leftover now finds the GLM Coding Plan key in your cprov profile when no other tool holds it. macOS asks once for access to it.")
+                    ),
+                ]
+            ),
+            ReleaseNote(
                 version: "1.0.1",
                 headline: L10n.t("A maintenance release."),
                 changes: [
